@@ -39,91 +39,6 @@ const POWER_UPS = [
   { type: "slow", color: "#a476ff", desc: "Slow Dawgs" }
 ];
 
-/**
- * === Audio URLs + Attribution (Freesound.org Sources) ===
- *
- * All links below are direct .mp3/.wav sources, public, browser-playable.
- * See attribution notes for each track per Freesound/CC license.
- * 
- * If you receive a "no supported sources" error, one of these URLs may be
- * unreachable or your browser doesn't support the format (mp3/wav only).
- *
- * --- Freesound.org Attribution (2024) ---
- * Background music: "Retrowave Loop 105BPM" by Frankum
- *     https://freesound.org/people/Frankum/sounds/427255/
- *     Use: CC0 (no credit required but appreciated)
- *
- * Laser/Shooting: "Laser_Shoot" by qubodup
- *     https://freesound.org/people/qubodup/sounds/182245/
- *     CC0 (no credit required)
- *
- * Explosion: "Retro Explosion" by ProjectsU012
- *     https://freesound.org/people/ProjectsU012/sounds/341624/
- *     License: CC BY 3.0 (credit: ProjectsU012, Freesound.org)
- *
- * Power-up: "Synth Powerup Blip" by DirtyJewbs
- *     https://freesound.org/people/DirtyJewbs/sounds/501454/
- *     License: CC0
- *
- * Lose Life: "Fail Retro Danger" by LittleRobotSoundFactory
- *     https://freesound.org/people/LittleRobotSoundFactory/sounds/270404/
- *     License: CC BY 3.0
- *
- * Game Over: "Game Over Retro Tones" by foolboymedia
- *     https://freesound.org/people/foolboymedia/sounds/353607/
- *     License: CC BY 3.0
- *
- * Meme WIN: "Success Fanfare Trumpets" by Susumu Ueno
- *     https://freesound.org/people/susumugames/sounds/341695/
- *     License: CC0
- *
- * Meme FAIL: "Comedy Boing Fail" by CGEffex
- *     https://freesound.org/people/CGEffex/sounds/98260/
- *     License: CC BY 3.0
- *
- * Fallback: All are mp3 except as noted; browser will try mp3, then wav if provided.
- */
-
-// --- Audio: file URLs mapped by event (all via Freesound) ---
-// Background music
-const MUSIC_URL =
-  "https://cdn.freesound.org/previews/427/427255_5121236-lq.mp3"; // [Frankum] Retrowave Loop 105BPM
-
-// Laser/Shooting sound
-const LASER_URL =
-  "https://cdn.freesound.org/previews/182/182245_219326-lq.mp3"; // [qubodup] Laser_Shoot
-
-// Explosion sound
-const EXPLOSION_URL =
-  "https://cdn.freesound.org/previews/341/341624_6260504-lq.mp3"; // [ProjectsU012] Retro Explosion
-
-// Power-up pickup
-const POWERUP_URL =
-  "https://cdn.freesound.org/previews/501/501454_10468326-lq.mp3"; // [DirtyJewbs] Synth Powerup Blip
-
-// Lose life sound
-const LOSE_LIFE_URL =
-  "https://cdn.freesound.org/previews/270/270404_5121236-lq.mp3"; // [LittleRobotSoundFactory] Fail Retro Danger
-
-// Game over sound
-const GAME_OVER_URL =
-  "https://cdn.freesound.org/previews/353/353607_5121236-lq.mp3"; // [foolboymedia] Game Over Retro Tones
-
-// Meme WIN sound
-const WIN_MEME_URL =
-  "https://cdn.freesound.org/previews/341/341695_3248244-lq.mp3"; // [Susumu Ueno] Success Fanfare Trumpets
-
-// Meme FAIL sound
-const FAIL_MEME_URL =
-  "https://cdn.freesound.org/previews/98/98260_165997-lq.mp3"; // [CGEffex] Comedy Boing Fail
-
-// =================== Audio Fallback/Compat ====================
-// For maximum compatibility, we only use mp3, but you may add .wav URLs as needed.
-
-// If you modify or add new events, add both .mp3 and .wav with fallback code as below.
-
-// --- Attribution footer/box for in-game (see bottom of UI below) ---
-
 // Meme overlay messages
 const MEME_MESSAGES = [
   "Do a barrel roll!", "NOT EVEN CLOSE BABY!", "He can't keep getting away with this.",
@@ -135,7 +50,6 @@ function App() {
   const [screen, setScreen] = useState("home"); // home, game, gameover
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [isMuted, setMuted] = useState(false);
   const [leaderboard, setLeaderboard] = useState(() => loadLeaderboard());
   const [memeMsg, setMemeMsg] = useState("");
   const [playerName, setPlayerName] = useState("");
@@ -143,8 +57,6 @@ function App() {
 
   // Game state refs for Canvas logic
   const animationRef = useRef();
-  const audioCtxRef = useRef();
-  const musicRef = useRef();
   const canvasRef = useRef();
 
   // Main game vars
@@ -186,14 +98,6 @@ function App() {
     setLeaderboard(highScores);
     saveLeaderboard(highScores);
 
-    // --- Play meme sound based on result (WIN if score high, else FAIL) ---
-    // >2000 points = Win meme, else fail meme
-    if (newScore > 2000) {
-      playAudio(WIN_MEME_URL, 0.24); // Meme win trumpet
-    } else {
-      playAudio(FAIL_MEME_URL, 0.24); // Meme fail boing
-    }
-
     setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
     setScreen("gameover");
   }
@@ -219,43 +123,6 @@ function App() {
     let currentScore = 0;
     let enemySpeed = 1;
     let holdingLeft = false, holdingRight = false, firing = false, lastFire = 0;
-
-    // Utility functions for Canvas drawing/effects
-    /**
-     * Audio playback utility for event SFX/music (plays mp3, allows future fallback to wav).
-     * @param {string|string[]} url - Single URL or array of URLs (mp3, wav for fallback).
-     * @param {number} gain - Volume gain (0..1)
-     */
-    function playAudio(url, gain = 0.36) {
-      if (isMuted) return;
-      let urls = Array.isArray(url) ? url : [url];
-      // Tries each URL until successful.
-      (function tryUrl(idx) {
-        if (idx >= urls.length) return; // Give up
-        try {
-          let ctx = audioCtxRef.current;
-          if (!ctx) {
-            ctx = new (window.AudioContext || window.webkitAudioContext)();
-            audioCtxRef.current = ctx;
-          }
-          fetch(urls[idx])
-            .then((r) => r.arrayBuffer())
-            .then((buf) =>
-              ctx.decodeAudioData(buf, (buffer) => {
-                const src = ctx.createBufferSource();
-                src.buffer = buffer;
-                const g = ctx.createGain();
-                g.gain.value = gain;
-                src.connect(g).connect(ctx.destination);
-                src.start(0);
-              }, () => {
-                // Try next fallback format (e.g., wav)
-                tryUrl(idx + 1);
-              })
-            );
-        } catch (e) { /* ignore errors, try next */ tryUrl(idx + 1); }
-      })(0);
-    }
 
     // Keyboard controls
     function onKeyDown(e) {
@@ -321,7 +188,6 @@ function App() {
             color: COLORS.neon
           });
         }
-        playAudio(LASER_URL, 0.14);
         lastFire = frame;
       }
 
@@ -382,7 +248,7 @@ function App() {
               enemy
             )
           ) {
-            // Explosion, sound, add score
+            // Explosion, add score
             explosions.push({
               x:
                 enemy.x +
@@ -393,7 +259,6 @@ function App() {
               c: enemy.color,
               fade: 20
             });
-            playAudio(EXPLOSION_URL, 0.2);
 
             currentScore += enemy.points;
             setScore(currentScore);
@@ -417,11 +282,7 @@ function App() {
             // Lose a life, shield protects
             currentLives--;
             setLives(currentLives);
-            // --- Play Lose Life Sound ---
-            playAudio(LOSE_LIFE_URL, 0.19);
             if (currentLives <= 0) {
-              // --- Play Game Over Sound ---
-              playAudio(GAME_OVER_URL, 0.28);
               handleGameOver(currentScore);
               return;
             }
@@ -439,16 +300,11 @@ function App() {
             c: COLORS.accent,
             fade: 22
           });
-          playAudio(EXPLOSION_URL, 0.24);
           enemies.splice(e, 1);
           if (!player.shield) {
             currentLives--;
             setLives(currentLives);
-            // --- Play Lose Life Sound ---
-            playAudio(LOSE_LIFE_URL, 0.17);
             if (currentLives <= 0) {
-              // --- Play Game Over Sound ---
-              playAudio(GAME_OVER_URL, 0.29);
               handleGameOver(currentScore);
               return;
             }
@@ -464,7 +320,6 @@ function App() {
         if (
           checkCollision(player, PLAYER_W, PLAYER_H, pu, 28, 28)
         ) {
-          playAudio(POWERUP_URL, 0.16);
           activePower = pu.type;
           powerTimer = 0;
           if (pu.type === "double") player.doubleBullet = true;
@@ -538,7 +393,7 @@ function App() {
     // Cleanup
     return cleanup;
     // eslint-disable-next-line
-  }, [screen, isMuted]);
+  }, [screen]);
 
   // React lifecycle for Canvas logic setup
   useEffect(() => {
@@ -551,23 +406,6 @@ function App() {
       runGame();
     }
   }, [screen, runGame]);
-
-  // --- Audio: Music player ---
-  useEffect(() => {
-    if (!musicRef.current) {
-      musicRef.current = new window.Audio(MUSIC_URL);
-      musicRef.current.loop = true;
-      musicRef.current.volume = 0.27;
-    }
-    if (screen !== "home" && !isMuted) {
-      try {
-        musicRef.current.play();
-      } catch (e) {}
-    } else {
-      musicRef.current.pause();
-      musicRef.current.currentTime = 0;
-    }
-  }, [screen, isMuted]);
 
   // ---- UI & Presentation ----
 
@@ -589,9 +427,6 @@ function App() {
             <button className="tiny-ghost-btn" onClick={showBoard}>
               🏆 Leaderboard
             </button>
-            <button className="tiny-ghost-btn" onClick={() => setMuted(!isMuted)}>
-              {isMuted ? "🔇 Muted" : "🔊"}
-            </button>
           </div>
         </div>
         {showLeaderboard && (
@@ -603,10 +438,6 @@ function App() {
         )}
         <div className="attribution">
           <span>Retro vibes powered by Synthwave • Coded 2024</span>
-          <span style={{display: "block", fontSize: "0.91em", opacity: 0.77, marginTop: 2}}>
-            Audio from <a href="https://freesound.org/" style={{color: "#ffe062"}} target="_blank" rel="noopener noreferrer">Freesound.org</a>. 
-            BG Music: &quot;Retrowave Loop&quot; by Frankum. SFX: qubodup, ProjectsU012, DirtyJewbs, LittleRobotSoundFactory, foolboymedia, susumugames, CGEffex.
-          </span>
         </div>
       </div>
     );
@@ -672,9 +503,6 @@ function App() {
         <span>
           <span className="lives-label">Lives:</span> {lives}
         </span>
-        <button className="tiny-ghost-btn" onClick={() => setMuted(!isMuted)}>
-          {isMuted ? "🔇" : "🔊"}
-        </button>
       </div>
       <div className="gameplay-wrap">
         <canvas
@@ -697,8 +525,7 @@ function App() {
         <LeaderboardOverlay scores={leaderboard} onClose={hideBoard} meme={null} />
       )}
       <div className="attribution" style={{marginBottom: 14, marginTop: 26}}>
-        <span style={{display: "block"}}>Audio from <a href="https://freesound.org/" style={{color: "#ffe062"}} target="_blank" rel="noopener noreferrer">Freesound.org</a>.
-        &nbsp;BG music: "Retrowave Loop" by Frankum. SFX: qubodup, ProjectsU012, DirtyJewbs, LittleRobotSoundFactory, foolboymedia, susumugames, CGEffex.</span>
+        <span style={{display: "block"}}>Retro vibes powered by Synthwave • Coded 2024</span>
       </div>
     </div>
   );
