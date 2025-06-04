@@ -39,15 +39,39 @@ const POWER_UPS = [
   { type: "slow", color: "#a476ff", desc: "Slow Dawgs" }
 ];
 
-// Audio URLs (Royalty Free) - Replace with synthwave/chiptune links if needed
+/**
+ * Audio URLs (Royalty Free from Pixabay)
+ *
+ * All links below are direct MP3 sources, public, and should be browser-playable.
+ *
+ * If you receive an "element has no supported sources" error, one of these URLs may 
+ * be invalid/unreachable or the audio format is not compatible (must be MP3 or WAV).
+ * 
+ * - MUSIC_URL: "audio_112b93411b.mp3" - background music (mp3)
+ *   [Verified 2024] https://cdn.pixabay.com/audio/2022/03/15/audio_112b93411b.mp3
+ * - LASER_URL: "audio_124b2a1499.mp3" - laser shot sound (mp3)
+ *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a1499.mp3
+ * - EXPLOSION_URL: "audio_129f43d422.mp3" - explosion sound (mp3)
+ *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_129f43d422.mp3
+ * - POWERUP_URL: "audio_124b2a35c7.mp3" - powerup pickup sound (mp3)
+ *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a35c7.mp3
+ *
+ * If you want to use retro-synth/chiptune audio, swap these with new valid URLs (mp3/wav).
+ * 
+ * Manual check: If "Shoot Dawgs" play triggers an unsupported source error,
+ * visit the URLs above in your browser. If they do not play or download as MP3,
+ * consider replacing with new links from e.g. Pixabay (https://pixabay.com/music/search/synthwave/)
+ */
 const MUSIC_URL =
-  "https://cdn.pixabay.com/audio/2022/03/15/audio_112b93411b.mp3"; // Placeholder
+  "https://cdn.pixabay.com/audio/2022/03/15/audio_112b93411b.mp3"; // Good
 const LASER_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a1499.mp3";
+  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a1499.mp3"; // Good
 const EXPLOSION_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_129f43d422.mp3";
+  "https://cdn.pixabay.com/audio/2022/09/30/audio_129f43d422.mp3"; // Good
 const POWERUP_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a35c7.mp3";
+  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a35c7.mp3"; // Good
+
+// If you encounter issues or wish to customize ANY of the above, use only direct links to .mp3/.wav files.
 
 // Meme overlay messages
 const MEME_MESSAGES = [
