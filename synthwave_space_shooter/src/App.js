@@ -696,6 +696,10 @@ function App() {
       {showLeaderboard && (
         <LeaderboardOverlay scores={leaderboard} onClose={hideBoard} meme={null} />
       )}
+      <div className="attribution" style={{marginBottom: 14, marginTop: 26}}>
+        <span style={{display: "block"}}>Audio from <a href="https://freesound.org/" style={{color: "#ffe062"}} target="_blank" rel="noopener noreferrer">Freesound.org</a>.
+        &nbsp;BG music: "Retrowave Loop" by Frankum. SFX: qubodup, ProjectsU012, DirtyJewbs, LittleRobotSoundFactory, foolboymedia, susumugames, CGEffex.</span>
+      </div>
     </div>
   );
 }
