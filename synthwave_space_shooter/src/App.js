@@ -185,6 +185,15 @@ function App() {
     if (newScore > 0) highScores = insertLeaderboard(highScores, playerName || "Space Dawg", newScore, 8);
     setLeaderboard(highScores);
     saveLeaderboard(highScores);
+
+    // --- Play meme sound based on result (WIN if score high, else FAIL) ---
+    // >2000 points = Win meme, else fail meme
+    if (newScore > 2000) {
+      playAudio(WIN_MEME_URL, 0.24); // Meme win trumpet
+    } else {
+      playAudio(FAIL_MEME_URL, 0.24); // Meme fail boing
+    }
+
     setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
     setScreen("gameover");
   }
@@ -403,11 +412,16 @@ function App() {
         if (enemy.y > GAME_HEIGHT - 2 - ENEMY_H * enemy.size) {
           // Bottom hit
           enemies.splice(e, 1);
+
           if (!player.shield) {
-            // Lose life, shield protects
+            // Lose a life, shield protects
             currentLives--;
             setLives(currentLives);
+            // --- Play Lose Life Sound ---
+            playAudio(LOSE_LIFE_URL, 0.19);
             if (currentLives <= 0) {
+              // --- Play Game Over Sound ---
+              playAudio(GAME_OVER_URL, 0.28);
               handleGameOver(currentScore);
               return;
             }
@@ -430,7 +444,11 @@ function App() {
           if (!player.shield) {
             currentLives--;
             setLives(currentLives);
+            // --- Play Lose Life Sound ---
+            playAudio(LOSE_LIFE_URL, 0.17);
             if (currentLives <= 0) {
+              // --- Play Game Over Sound ---
+              playAudio(GAME_OVER_URL, 0.29);
               handleGameOver(currentScore);
               return;
             }
