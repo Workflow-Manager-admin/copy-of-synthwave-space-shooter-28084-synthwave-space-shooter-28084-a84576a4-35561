@@ -67,9 +67,8 @@ function App() {
     setScreen("game");
     setScore(0);
     setLives(3);
-    setTimeout(() => {
-      runGame();
-    }, 150); // allow screen transition
+    // Instantly start game without any confirmation or delay
+    runGame();
   }
 
   // PUBLIC_INTERFACE
