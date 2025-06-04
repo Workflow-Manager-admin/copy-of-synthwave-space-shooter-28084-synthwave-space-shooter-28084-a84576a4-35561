@@ -4,6 +4,12 @@
   --text-color: #ffffff;
   --text-secondary: rgba(255, 255, 255, 0.7);
   --border-color: rgba(255, 255, 255, 0.1);
+
+  --sw-primary: #594592;
+  --sw-secondary: #0f3460;
+  --sw-accent: #e94560;
+  --sw-neon: #00fff7;
+  --sw-neon-yellow: #ffe062;
 }
 
 body {
