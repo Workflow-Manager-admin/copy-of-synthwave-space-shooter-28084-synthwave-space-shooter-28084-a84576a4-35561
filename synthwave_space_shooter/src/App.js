@@ -603,6 +603,10 @@ function App() {
         )}
         <div className="attribution">
           <span>Retro vibes powered by Synthwave • Coded 2024</span>
+          <span style={{display: "block", fontSize: "0.91em", opacity: 0.77, marginTop: 2}}>
+            Audio from <a href="https://freesound.org/" style={{color: "#ffe062"}} target="_blank" rel="noopener noreferrer">Freesound.org</a>. 
+            BG Music: &quot;Retrowave Loop&quot; by Frankum. SFX: qubodup, ProjectsU012, DirtyJewbs, LittleRobotSoundFactory, foolboymedia, susumugames, CGEffex.
+          </span>
         </div>
       </div>
     );
