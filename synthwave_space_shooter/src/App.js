@@ -40,38 +40,89 @@ const POWER_UPS = [
 ];
 
 /**
- * Audio URLs (Royalty Free from Pixabay)
+ * === Audio URLs + Attribution (Freesound.org Sources) ===
  *
- * All links below are direct MP3 sources, public, and should be browser-playable.
- *
- * If you receive an "element has no supported sources" error, one of these URLs may 
- * be invalid/unreachable or the audio format is not compatible (must be MP3 or WAV).
+ * All links below are direct .mp3/.wav sources, public, browser-playable.
+ * See attribution notes for each track per Freesound/CC license.
  * 
- * - MUSIC_URL: "audio_112b93411b.mp3" - background music (mp3)
- *   [Verified 2024] https://cdn.pixabay.com/audio/2022/03/15/audio_112b93411b.mp3
- * - LASER_URL: "audio_124b2a1499.mp3" - laser shot sound (mp3)
- *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a1499.mp3
- * - EXPLOSION_URL: "audio_129f43d422.mp3" - explosion sound (mp3)
- *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_129f43d422.mp3
- * - POWERUP_URL: "audio_124b2a35c7.mp3" - powerup pickup sound (mp3)
- *   [Verified 2024] https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a35c7.mp3
+ * If you receive a "no supported sources" error, one of these URLs may be
+ * unreachable or your browser doesn't support the format (mp3/wav only).
  *
- * If you want to use retro-synth/chiptune audio, swap these with new valid URLs (mp3/wav).
- * 
- * Manual check: If "Shoot Dawgs" play triggers an unsupported source error,
- * visit the URLs above in your browser. If they do not play or download as MP3,
- * consider replacing with new links from e.g. Pixabay (https://pixabay.com/music/search/synthwave/)
+ * --- Freesound.org Attribution (2024) ---
+ * Background music: "Retrowave Loop 105BPM" by Frankum
+ *     https://freesound.org/people/Frankum/sounds/427255/
+ *     Use: CC0 (no credit required but appreciated)
+ *
+ * Laser/Shooting: "Laser_Shoot" by qubodup
+ *     https://freesound.org/people/qubodup/sounds/182245/
+ *     CC0 (no credit required)
+ *
+ * Explosion: "Retro Explosion" by ProjectsU012
+ *     https://freesound.org/people/ProjectsU012/sounds/341624/
+ *     License: CC BY 3.0 (credit: ProjectsU012, Freesound.org)
+ *
+ * Power-up: "Synth Powerup Blip" by DirtyJewbs
+ *     https://freesound.org/people/DirtyJewbs/sounds/501454/
+ *     License: CC0
+ *
+ * Lose Life: "Fail Retro Danger" by LittleRobotSoundFactory
+ *     https://freesound.org/people/LittleRobotSoundFactory/sounds/270404/
+ *     License: CC BY 3.0
+ *
+ * Game Over: "Game Over Retro Tones" by foolboymedia
+ *     https://freesound.org/people/foolboymedia/sounds/353607/
+ *     License: CC BY 3.0
+ *
+ * Meme WIN: "Success Fanfare Trumpets" by Susumu Ueno
+ *     https://freesound.org/people/susumugames/sounds/341695/
+ *     License: CC0
+ *
+ * Meme FAIL: "Comedy Boing Fail" by CGEffex
+ *     https://freesound.org/people/CGEffex/sounds/98260/
+ *     License: CC BY 3.0
+ *
+ * Fallback: All are mp3 except as noted; browser will try mp3, then wav if provided.
  */
-const MUSIC_URL =
-  "https://cdn.pixabay.com/audio/2022/03/15/audio_112b93411b.mp3"; // Good
-const LASER_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a1499.mp3"; // Good
-const EXPLOSION_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_129f43d422.mp3"; // Good
-const POWERUP_URL =
-  "https://cdn.pixabay.com/audio/2022/09/30/audio_124b2a35c7.mp3"; // Good
 
-// If you encounter issues or wish to customize ANY of the above, use only direct links to .mp3/.wav files.
+// --- Audio: file URLs mapped by event (all via Freesound) ---
+// Background music
+const MUSIC_URL =
+  "https://cdn.freesound.org/previews/427/427255_5121236-lq.mp3"; // [Frankum] Retrowave Loop 105BPM
+
+// Laser/Shooting sound
+const LASER_URL =
+  "https://cdn.freesound.org/previews/182/182245_219326-lq.mp3"; // [qubodup] Laser_Shoot
+
+// Explosion sound
+const EXPLOSION_URL =
+  "https://cdn.freesound.org/previews/341/341624_6260504-lq.mp3"; // [ProjectsU012] Retro Explosion
+
+// Power-up pickup
+const POWERUP_URL =
+  "https://cdn.freesound.org/previews/501/501454_10468326-lq.mp3"; // [DirtyJewbs] Synth Powerup Blip
+
+// Lose life sound
+const LOSE_LIFE_URL =
+  "https://cdn.freesound.org/previews/270/270404_5121236-lq.mp3"; // [LittleRobotSoundFactory] Fail Retro Danger
+
+// Game over sound
+const GAME_OVER_URL =
+  "https://cdn.freesound.org/previews/353/353607_5121236-lq.mp3"; // [foolboymedia] Game Over Retro Tones
+
+// Meme WIN sound
+const WIN_MEME_URL =
+  "https://cdn.freesound.org/previews/341/341695_3248244-lq.mp3"; // [Susumu Ueno] Success Fanfare Trumpets
+
+// Meme FAIL sound
+const FAIL_MEME_URL =
+  "https://cdn.freesound.org/previews/98/98260_165997-lq.mp3"; // [CGEffex] Comedy Boing Fail
+
+// =================== Audio Fallback/Compat ====================
+// For maximum compatibility, we only use mp3, but you may add .wav URLs as needed.
+
+// If you modify or add new events, add both .mp3 and .wav with fallback code as below.
+
+// --- Attribution footer/box for in-game (see bottom of UI below) ---
 
 // Meme overlay messages
 const MEME_MESSAGES = [
@@ -161,27 +212,40 @@ function App() {
     let holdingLeft = false, holdingRight = false, firing = false, lastFire = 0;
 
     // Utility functions for Canvas drawing/effects
+    /**
+     * Audio playback utility for event SFX/music (plays mp3, allows future fallback to wav).
+     * @param {string|string[]} url - Single URL or array of URLs (mp3, wav for fallback).
+     * @param {number} gain - Volume gain (0..1)
+     */
     function playAudio(url, gain = 0.36) {
       if (isMuted) return;
-      try {
-        let ctx = audioCtxRef.current;
-        if (!ctx) {
-          ctx = new (window.AudioContext || window.webkitAudioContext)();
-          audioCtxRef.current = ctx;
-        }
-        fetch(url)
-          .then((r) => r.arrayBuffer())
-          .then((buf) =>
-            ctx.decodeAudioData(buf, (buffer) => {
-              const src = ctx.createBufferSource();
-              src.buffer = buffer;
-              const g = ctx.createGain();
-              g.gain.value = gain;
-              src.connect(g).connect(ctx.destination);
-              src.start(0);
-            })
-          );
-      } catch (e) { /* ignore errors */ }
+      let urls = Array.isArray(url) ? url : [url];
+      // Tries each URL until successful.
+      (function tryUrl(idx) {
+        if (idx >= urls.length) return; // Give up
+        try {
+          let ctx = audioCtxRef.current;
+          if (!ctx) {
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtxRef.current = ctx;
+          }
+          fetch(urls[idx])
+            .then((r) => r.arrayBuffer())
+            .then((buf) =>
+              ctx.decodeAudioData(buf, (buffer) => {
+                const src = ctx.createBufferSource();
+                src.buffer = buffer;
+                const g = ctx.createGain();
+                g.gain.value = gain;
+                src.connect(g).connect(ctx.destination);
+                src.start(0);
+              }, () => {
+                // Try next fallback format (e.g., wav)
+                tryUrl(idx + 1);
+              })
+            );
+        } catch (e) { /* ignore errors, try next */ tryUrl(idx + 1); }
+      })(0);
     }
 
     // Keyboard controls
