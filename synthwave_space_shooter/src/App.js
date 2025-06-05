@@ -481,7 +481,6 @@ function App() {
 
   // React lifecycle for Canvas logic setup
   useEffect(() => {
-    // BGM logic is removed - No background music/freesound integration for BGM.
     if (screen === "game") {
       // Stretch canvas to parent in CSS, but use fixed logic coords inside.
       const canvas = canvasRef.current;
@@ -489,25 +488,10 @@ function App() {
       canvas.height = GAME_HEIGHT;
       // Start game loop
       runGame();
-    } else {
-      // Clean up BGM on leave or on gameover/home
-      if (bgmAudio) {
-        try {
-          bgmAudio.pause();
-        } catch {}
-        setBgmAudio(null);
-      }
     }
-    return () => {
-      // Stop BGM when leaving the game screen
-      if (bgmAudio) {
-        try {
-          bgmAudio.pause();
-        } catch {}
-        setBgmAudio(null);
-      }
-    };
-  }, [screen, runGame, bgmAudio]);
+    // No background music/BGM handling present.
+    return () => {};
+  }, [screen, runGame]);
 
   // ---- UI & Presentation ----
 
