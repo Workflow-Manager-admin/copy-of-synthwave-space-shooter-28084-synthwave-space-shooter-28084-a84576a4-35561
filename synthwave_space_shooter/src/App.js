@@ -505,7 +505,7 @@ function App() {
           />
         )}
         <div className="attribution">
-          <span>Retro vibes powered by Synthwave • Coded 2024</span>
+          <span>Retro vibes powered by supabase • Coded 2024</span>
         </div>
       </div>
     );
@@ -604,7 +604,7 @@ function App() {
         <LeaderboardOverlay scores={leaderboard} onClose={hideBoard} meme={null} />
       )}
       <div className="attribution" style={{marginBottom: 14, marginTop: 26}}>
-        <span style={{display: "block"}}>Retro vibes powered by Synthwave • Coded 2024</span>
+        <span style={{display: "block"}}>Retro vibes powered by supabase • Coded 2024</span>
       </div>
     </div>
   );
