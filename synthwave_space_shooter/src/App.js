@@ -232,9 +232,9 @@ function App() {
       // Firing
       if (firing && frame - lastFire > (player.doubleBullet ? 7 : 13)) {
         // Play sound whenever a laser is fired
-        playFreesoundAudio("laser", {
-          volume: 0.35,
-          onLoading: () => setSoundLoading(true),
+        playLocalSound("laser", {
+          volume: 0.32,
+          allowOverlap: true,
           onLoaded: () => setSoundLoading(false),
           onError: (err) => setSoundError("Laser sound error"),
         });
@@ -336,9 +336,9 @@ function App() {
             });
 
             // Sound: explosion
-            playFreesoundAudio("explosion", {
-              volume: 0.45,
-              onLoading: () => setSoundLoading(true),
+            playLocalSound("explosion", {
+              volume: 0.41, // slightly lower for softer mix
+              allowOverlap: true, // allow for simultaneous explosions
               onLoaded: () => setSoundLoading(false),
               onError: () => setSoundError("Explosion sound error"),
             });
