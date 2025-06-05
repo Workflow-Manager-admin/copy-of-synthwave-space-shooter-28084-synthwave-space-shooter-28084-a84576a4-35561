@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css";
+// Supabase integration via CDN workaround utility
+import {
+  getLeaderboard as getSupabaseLeaderboard,
+  postScore as postSupabaseScore,
+} from "./supabaseClient";
 
 /**
  * --- Synthwave Space Shooter ---
@@ -50,7 +55,7 @@ function App() {
   const [screen, setScreen] = useState("home"); // home, game, gameover
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [leaderboard, setLeaderboard] = useState(() => loadLeaderboard());
+  const [leaderboard, setLeaderboard] = useState([]);
   const [memeMsg, setMemeMsg] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -59,8 +64,33 @@ function App() {
   const animationRef = useRef();
   const canvasRef = useRef();
 
+  // Option to use Supabase for all leaderboard operations (default: true)
+  const useSupabase = true;
+
   // Main game vars
   const stateRef = useRef(null);
+
+  // Load leaderboard from Supabase or fallback to localStorage
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (useSupabase) {
+        try {
+          const lb = await getSupabaseLeaderboard(10);
+          if (mounted) setLeaderboard(lb);
+        } catch {
+          // Fallback to localStorage on error (Supabase misconfigured)
+          if (mounted) setLeaderboard(loadLeaderboard());
+        }
+      } else {
+        setLeaderboard(loadLeaderboard());
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // PUBLIC_INTERFACE
   function startGame() {
