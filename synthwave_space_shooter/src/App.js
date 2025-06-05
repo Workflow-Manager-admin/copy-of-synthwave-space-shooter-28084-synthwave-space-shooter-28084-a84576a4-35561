@@ -116,30 +116,47 @@ function App() {
 
   // PUBLIC_INTERFACE
   function handleGameOver(newScore) {
-    // Update leaderboard
-    let highScores = loadLeaderboard();
-    let prevHighScore = highScores.length > 0 ? highScores[0].points : 0;
-    let rank =
-      highScores.findIndex((o) => newScore > o.points) !== -1
-        ? highScores.findIndex((o) => newScore > o.points)
-        : highScores.length;
-    if (!playerName && newScore > 0) setPlayerName(promptName());
-    if (newScore > 0) highScores = insertLeaderboard(highScores, playerName || "Space Dawg", newScore, 8);
-    setLeaderboard(highScores);
-    saveLeaderboard(highScores);
+    // (Async) Update leaderboard via Supabase, fallback to localStorage if error
+    const doPost = async () => {
+      let prevHighScore = leaderboard.length > 0 ? leaderboard[0].points : 0;
+      let name = playerName || promptName();
+      if (newScore > 0 && useSupabase) {
+        try {
+          await postSupabaseScore(name, newScore);
+          // Update leaderboard from remote
+          const lb = await getSupabaseLeaderboard(10);
+          setLeaderboard(lb);
+          // Also save locally just in case
+          saveLeaderboard(lb);
+          prevHighScore = lb.length > 0 ? lb[0].points : 0;
+        } catch {
+          // Fallback: update locally if Supabase fails
+          let highScores = insertLeaderboard(loadLeaderboard(), name, newScore, 10);
+          setLeaderboard(highScores);
+          saveLeaderboard(highScores);
+          prevHighScore = highScores.length > 0 ? highScores[0].points : 0;
+        }
+      } else if (newScore > 0) {
+        let highScores = insertLeaderboard(loadLeaderboard(), name, newScore, 10);
+        setLeaderboard(highScores);
+        saveLeaderboard(highScores);
+        prevHighScore = highScores.length > 0 ? highScores[0].points : 0;
+      }
 
-    // Set game over meme message according to the specified logic
-    if (newScore > prevHighScore) {
-      setMemeMsg("Amazing Dawg! keep it up!");
-    } else if (newScore < prevHighScore && newScore < 200) {
-      setMemeMsg("Yo yo what kinda score is this");
-    } else if (newScore < prevHighScore && newScore >= 200) {
-      setMemeMsg("No Comments simply waste");
-    } else {
-      // Fallback: default or legacy random message (shouldn't occur)
-      setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
-    }
-    setScreen("gameover");
+      // Set game over meme message
+      if (newScore > prevHighScore) {
+        setMemeMsg("Amazing Dawg! keep it up!");
+      } else if (newScore < prevHighScore && newScore < 200) {
+        setMemeMsg("Yo yo what kinda score is this");
+      } else if (newScore < prevHighScore && newScore >= 200) {
+        setMemeMsg("No Comments simply waste");
+      } else {
+        setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
+      }
+      setScreen("gameover");
+    };
+
+    doPost();
   }
 
   // --- Core Game Loop Logic ---
