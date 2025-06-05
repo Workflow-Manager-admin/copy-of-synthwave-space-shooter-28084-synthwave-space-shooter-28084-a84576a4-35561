@@ -1,41 +1,74 @@
 # synthwave-space-shooter-28084-a84576a4
 
-## Supabase Integration (via CDN) for Leaderboard
+## Supabase Integration (via NPM) for Leaderboard
 
-This project uses Supabase to store and retrieve player name/score for the leaderboard.  
-**Supabase is integrated via CDN rather than NPM.**
+This project uses Supabase to store and retrieve player names and scores for the leaderboard.  
+**Supabase is integrated via the official NPM package `@supabase/supabase-js`, not CDN.**
 
-### How to set up Supabase with the React template
+### How to set up Supabase with this React project
 
-1. **CDN Script**:  
-   Ensure this script tag is present _after_ the root div in your `index.html`:
-   ```html
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+1. **Install the Supabase JS client:**
+
+   Run this in the `synthwave_space_shooter` folder:
+   ```sh
+   npm install @supabase/supabase-js
    ```
 
-   Create a Supabase project (https://supabase.com), obtain your Project URL
-   and Anon API Key, and update them in `src/supabaseClient.js`:
+2. **Configure your Supabase credentials:**
+
+   Create a Supabase project at [https://supabase.com](https://supabase.com).  
+   Obtain your Project URL and Anon API Key, and update them in `src/supabaseClient.js`:
    ```js
+   // src/supabaseClient.js
    const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
    ```
 
-2. **No npm install required** for `@supabase/supabase-js`.
+3. **Import and use in the code:**
 
-3. **React Workaround**:  
-   Since React doesn't expose `index.html` directly for editing in some setups,
-   `src/supabaseClient.js` will attempt to dynamically inject the CDN script
-   if not present and will safely handle waiting for the script to load.
+   The Supabase client is created using the NPM package and imported directly:
+   ```js
+   import { createClient } from '@supabase/supabase-js';
 
-4. **Table Structure**:  
-   You must create a Supabase table called `scores` with columns:
-   - `player_name` (text/string)
-   - `score` (integer)
+   // Already set up in src/supabaseClient.js as 'supabase'
+   ```
 
-5. **Usage in Code**:  
-   Use the functions `postScore(name, score)` and `getLeaderboard(limit)` from `supabaseClient.js`.
+   You should use the provided functions for all leaderboard operations:
+   - `postScore(name, score)` &mdash; Store a player's name and score.
+   - `getTopScores(limit)` &mdash; Retrieve an array of leaderboard entries (sorted high to low).
+   - Both are exported by `src/supabaseClient.js`.
 
-6. **Security**:  
-   For production, consider Supabase Row Level Security rules to protect your data.
+4. **Correct Table Naming (IMPORTANT):**
 
-For details, see `src/supabaseClient.js`.
+   - The table in Supabase **must** be named exactly `Scores` (capital "S").
+   - Columns:
+     - `player_name` (text/string)
+     - `score` (integer)
+
+   ⚠️ If your table is called `scores` (all lowercase), Supabase will return a 404 error (table not found)!  
+   Table names in Supabase are case-sensitive. Double-check in the web UI that your table is `Scores`.
+
+5. **Usage Example:**
+   ```js
+   import { postScore, getTopScores } from "./src/supabaseClient";
+
+   // Posting a score
+   await postScore("PlayerName", 4250);
+
+   // Fetching top 10 scores
+   const leaderboard = await getTopScores(10);
+   // leaderboard is [{ name: "PlayerName", points: 4250 }, ...]
+   ```
+
+6. **Troubleshooting (404 errors):**
+
+   - If you see errors like `Table not found: scores`, ensure your Supabase table is named `Scores` (with a capital S).
+   - Changing the table name, or mismatches in capitalization, will result in failures to read or write the leaderboard.
+   - You can rename the table in the Supabase web interface if needed.
+
+7. **Security Best Practices:**
+
+   For production, configure Supabase **Row Level Security (RLS)** rules to protect your leaderboard data.  
+   Make sure only allowed operations are permitted (see Supabase docs for more information).
+
+For further details, see `src/supabaseClient.js`.
