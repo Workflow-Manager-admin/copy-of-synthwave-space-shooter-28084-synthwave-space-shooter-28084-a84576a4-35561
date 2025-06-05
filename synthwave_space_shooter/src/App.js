@@ -64,7 +64,6 @@ function App() {
   // Sound status state
   const [soundLoading, setSoundLoading] = useState(false);
   const [soundError, setSoundError] = useState(null);
-  const [bgmAudio, setBgmAudio] = useState(null);
 
   // Game state refs for Canvas logic
   const animationRef = useRef();
@@ -335,12 +334,12 @@ function App() {
               fade: 20
             });
 
-            // Sound: explosion
-            playLocalSound("explosion", {
-              volume: 0.41, // slightly lower for softer mix
-              allowOverlap: true, // allow for simultaneous explosions
+            // Sound: explosion (arcade retrigger SFX via Freesound)
+            playFreesoundAudio("explosion", {
+              volume: 0.41,
+              onLoading: () => setSoundLoading(true),
               onLoaded: () => setSoundLoading(false),
-              onError: () => setSoundError("Explosion sound error"),
+              onError: () => setSoundError("Explosion sound error")
             });
 
             currentScore += enemy.points;
@@ -409,8 +408,7 @@ function App() {
           if (pu.type === "shield") player.shield = true;
           if (pu.type === "slow") enemySpeed = Math.max(enemySpeed - 1.4, 0.15);
 
-          // No power-up sound, as requested: keep laser/explosion only.
-
+          // No sound: power-up audio SFX have been removed per requirements.
           powerups.splice(i, 1);
         }
       }
