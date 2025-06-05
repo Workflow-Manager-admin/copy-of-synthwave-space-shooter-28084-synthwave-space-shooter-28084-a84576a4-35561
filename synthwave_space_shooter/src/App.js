@@ -97,8 +97,8 @@ function App() {
       }
     };
 
-    // Preload all main sounds in background
-    ["laser", "explosion", "powerup", "background"].forEach((k) =>
+    // Preload only laser and explosion sounds in background (removed powerup & background)
+    ["laser", "explosion"].forEach((k) =>
       preloadFreesoundAudio(k)
     );
 
