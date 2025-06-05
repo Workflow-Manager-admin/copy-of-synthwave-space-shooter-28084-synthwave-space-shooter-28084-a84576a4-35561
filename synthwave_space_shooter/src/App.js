@@ -4,7 +4,10 @@ import {
   getTopScores,
   postScore
 } from "./supabaseClient";
-
+import {
+  playFreesoundAudio,
+  preloadFreesoundAudio
+} from "./freesoundAudio";
 // Remove custom saveScore and use imported postScore everywhere
 
 /**
