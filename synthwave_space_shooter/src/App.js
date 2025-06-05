@@ -2,9 +2,20 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css";
 // Supabase integration via CDN workaround utility
 import {
-  getLeaderboard as getSupabaseLeaderboard,
-  postScore as postSupabaseScore,
+  getLeaderboard as getSupabaseLeaderboard
 } from "./supabaseClient";
+
+// Example: Save a player's score (provided API as per subtask)
+// Uses the connected Supabase client to insert a row into the "scores" table
+async function saveScore(playerName, score) {
+  const { data, error } = await window.supabase
+    .from('scores')
+    .insert([
+      { player_name: playerName, score: score }
+    ]);
+  if (error) console.error(error)
+  else console.log('Score saved!', data)
+}
 
 /**
  * --- Synthwave Space Shooter ---
@@ -122,11 +133,10 @@ function App() {
       let name = playerName || promptName();
       if (newScore > 0 && useSupabase) {
         try {
-          await postSupabaseScore(name, newScore);
-          // Update leaderboard from remote
+          await saveScore(name, newScore); // CHANGED: use provided saveScore for Supabase
+          // Optionally, you may refetch the leaderboard if your in-app code expects to show the user their ranking.
           const lb = await getSupabaseLeaderboard(10);
           setLeaderboard(lb);
-          // Also save locally just in case
           saveLeaderboard(lb);
           prevHighScore = lb.length > 0 ? lb[0].points : 0;
         } catch {
