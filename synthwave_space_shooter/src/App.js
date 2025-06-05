@@ -489,33 +489,8 @@ function App() {
 
   // React lifecycle for Canvas logic setup
   useEffect(() => {
-    let bgm;
+    // BGM logic is removed - No background music/freesound integration for BGM.
     if (screen === "game") {
-      // Play BGM (loop)
-      setSoundLoading(true);
-      setSoundError(null);
-      playFreesoundAudio("background", {
-        volume: 0.21,
-        onLoading: () => setSoundLoading(true),
-        onLoaded: (audioEl) => {
-          setSoundLoading(false);
-          setSoundError(null);
-          try {
-            audioEl.loop = true;
-          } catch {}
-          audioEl.volume = 0.21;
-          audioEl.play().catch(() => {});
-          setBgmAudio(audioEl);
-        },
-        onError: (err) => {
-          setSoundLoading(false);
-          setSoundError("Background music failed to load.");
-        },
-      }).catch((e) => {
-        setSoundLoading(false);
-        setSoundError("Background music failed to play.");
-      });
-
       // Stretch canvas to parent in CSS, but use fixed logic coords inside.
       const canvas = canvasRef.current;
       canvas.width = GAME_WIDTH;

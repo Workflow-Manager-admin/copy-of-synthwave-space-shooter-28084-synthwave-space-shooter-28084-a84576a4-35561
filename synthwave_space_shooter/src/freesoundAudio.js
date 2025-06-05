@@ -9,9 +9,7 @@ const PREVIEW_MP3 = "previews.preview-hq-mp3";
 const DEFAULT_QUERIES = {
   laser: "laser",
   explosion: "explosion",
-  sparkle: "sparkle",
-  powerup: "power up",
-  background: "synthwave,retrowave,game,loop"
+  // Only laser and explosion are active. Removed sparkle, powerup, background.
 };
 
 /**
