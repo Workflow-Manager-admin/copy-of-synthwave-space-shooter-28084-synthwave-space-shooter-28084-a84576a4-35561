@@ -35,8 +35,14 @@ const ENEMY_TYPES = [
   { speed: 3.8, points: 200, color: "#fff057", size: 0.6, meme: "👽" }, // was 3
   { speed: 1.7, points: 350, color: "#40ddff", size: 1.5, meme: "🤖" }  // was 1.4
 ];
-// Lowering spawn interval increases frequency
-const ENEMY_SPAWN_INTERVAL = 700; // was 900
+/**
+ * ENEMY SPAWN LOGIC
+ * Lowering ENEMY_SPAWN_INTERVAL increases frequency. For more challenge,
+ * we'll also spawn more than one enemy per interval and raise a maxEnemies variable.
+ */
+const ENEMY_SPAWN_INTERVAL = 580; // was 700 (spawn more often)
+const ENEMIES_PER_SPAWN = 2;      // Spawn two per interval (was 1)
+const MAX_SIMULTANEOUS_ENEMIES = 10; // Increase allowed enemies on screen at once (default/old: unlimited or low)
 const ENEMY_SPEED_INCREMENT = 0.32; // was 0.25 (difficulty ramps up a little faster)
 
 /* Power-Up meta kept for game logic, but all related audio and SFX logic for power-ups/music will be stripped below. */
@@ -277,13 +283,20 @@ function App() {
       }
 
       // Spawn Enemies
-      if (frame - lastSpawn > ENEMY_SPAWN_INTERVAL / (1 + enemySpeed * 0.22)) {
-        const t = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
-        enemies.push({
-          x: Math.random() * (GAME_WIDTH - ENEMY_W * t.size),
-          y: -ENEMY_H * t.size - 10,
-          ...t
-        });
+      if (
+        frame - lastSpawn > ENEMY_SPAWN_INTERVAL / (1 + enemySpeed * 0.22) &&
+        enemies.length < MAX_SIMULTANEOUS_ENEMIES
+      ) {
+        for (let n = 0;
+          n < ENEMIES_PER_SPAWN && enemies.length < MAX_SIMULTANEOUS_ENEMIES;
+          n++) {
+          const t = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
+          enemies.push({
+            x: Math.random() * (GAME_WIDTH - ENEMY_W * t.size),
+            y: -ENEMY_H * t.size - 10,
+            ...t
+          });
+        }
         lastSpawn = frame;
       }
 
