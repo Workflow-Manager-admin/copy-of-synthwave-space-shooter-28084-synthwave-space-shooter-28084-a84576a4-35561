@@ -11,15 +11,15 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /**
  * PUBLIC_INTERFACE
- * Store a player's score and name to the Supabase 'scores' table.
+ * Store a player's score and name to the Supabase 'Scores' table.
  * @param {string} name - Player name
  * @param {number} score - Player score
  * @returns {Promise<boolean>}
  */
 export async function postScore(name, score) {
-  // Insert into 'scores' table with columns 'player_name' and 'score'
+  // Insert into 'Scores' table with columns 'player_name' and 'score'
   const { error } = await supabase
-    .from('scores')
+    .from('Scores')
     .insert([{ player_name: name, score }]);
   if (error) throw error;
   return true;
@@ -27,13 +27,13 @@ export async function postScore(name, score) {
 
 /**
  * PUBLIC_INTERFACE
- * Retrieve leaderboard data from Supabase 'scores' table, sorted by score (descending)
+ * Retrieve leaderboard data from Supabase 'Scores' table, sorted by score (descending)
  * @param {number} limit
  * @returns {Promise<Array<{ name: string, points: number }>>}
  */
 export async function getLeaderboard(limit = 10) {
   const { data, error } = await supabase
-    .from('scores')
+    .from('Scores')
     .select('player_name, score')
     .order('score', { ascending: false })
     .limit(limit);
@@ -47,14 +47,14 @@ export async function getLeaderboard(limit = 10) {
 
 /**
  * PUBLIC_INTERFACE
- * Fetch the top N scores (descending) from Supabase 'scores' table.
+ * Fetch the top N scores (descending) from Supabase 'Scores' table.
  * This is the new required API for leaderboard display.
  * @param {number} limit - Maximum number of records to fetch (default 10)
  * @returns {Promise<Array<{ name: string, points: number }>>}
  */
 export async function getTopScores(limit = 10) {
   const { data, error } = await supabase
-    .from('scores')
+    .from('Scores')
     .select('player_name, score')
     .order('score', { ascending: false })
     .limit(limit);
