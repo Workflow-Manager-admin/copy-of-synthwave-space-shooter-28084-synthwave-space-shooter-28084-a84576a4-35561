@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css";
-// Supabase integration via CDN workaround utility
 import {
-  getLeaderboard as getSupabaseLeaderboard
+  // Replace: old getLeaderboard as getSupabaseLeaderboard
+  getTopScores
 } from "./supabaseClient";
 
 // Example: Save a player's score (provided API as per subtask)
@@ -87,7 +87,8 @@ function App() {
     const load = async () => {
       if (useSupabase) {
         try {
-          const lb = await getSupabaseLeaderboard(10);
+          // Use the new getTopScores to fetch top 10 scores
+          const lb = await getTopScores(10);
           if (mounted) setLeaderboard(lb);
         } catch {
           // Fallback to localStorage on error (Supabase misconfigured)
