@@ -88,6 +88,7 @@ function App() {
   function handleGameOver(newScore) {
     // Update leaderboard
     let highScores = loadLeaderboard();
+    let prevHighScore = highScores.length > 0 ? highScores[0].points : 0;
     let rank =
       highScores.findIndex((o) => newScore > o.points) !== -1
         ? highScores.findIndex((o) => newScore > o.points)
@@ -97,7 +98,17 @@ function App() {
     setLeaderboard(highScores);
     saveLeaderboard(highScores);
 
-    setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
+    // Set game over meme message according to the specified logic
+    if (newScore > prevHighScore) {
+      setMemeMsg("Amazing Dawg! keep it up!");
+    } else if (newScore < prevHighScore && newScore < 200) {
+      setMemeMsg("Yo yo what kinda score is this");
+    } else if (newScore < prevHighScore && newScore >= 200) {
+      setMemeMsg("No Comments simply waste");
+    } else {
+      // Fallback: default or legacy random message (shouldn't occur)
+      setMemeMsg(MEME_MESSAGES[Math.floor(Math.random() * MEME_MESSAGES.length)]);
+    }
     setScreen("gameover");
   }
 
