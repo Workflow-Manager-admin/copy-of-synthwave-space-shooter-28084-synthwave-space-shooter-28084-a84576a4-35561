@@ -415,13 +415,7 @@ function App() {
           if (pu.type === "shield") player.shield = true;
           if (pu.type === "slow") enemySpeed = Math.max(enemySpeed - 1.4, 0.15);
 
-          // Sound: powerup collected
-          playFreesoundAudio("powerup", {
-            volume: 0.62,
-            onLoading: () => setSoundLoading(true),
-            onLoaded: () => setSoundLoading(false),
-            onError: () => setSoundError("Power-up sound error"),
-          });
+          // Removed power-up Freesound playback (no sound on powerup collect)
 
           powerups.splice(i, 1);
         }
