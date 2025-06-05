@@ -40,6 +40,23 @@ export async function getLeaderboard(limit = 10) {
   return data || [];
 }
 
+// PUBLIC_INTERFACE
+/**
+ * Fetch the top N scores (descending) from Supabase 'leaderboard' table.
+ * This is the new required API for leaderboard display.
+ * @param {number} limit - Maximum number of records to fetch (default 10)
+ * @returns {Promise<Array<{ name: string, points: number }>>}
+ */
+export async function getTopScores(limit = 10) {
+  const { data, error } = await supabase
+    .from('leaderboard')
+    .select('name, points')
+    .order('points', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
 /*
   Note: This file now uses the official NPM module import for Supabase,
   not the CDN script or window.supabase logic. All leaderboard client
