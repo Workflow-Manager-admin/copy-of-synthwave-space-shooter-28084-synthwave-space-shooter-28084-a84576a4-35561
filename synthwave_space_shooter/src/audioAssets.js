@@ -5,10 +5,11 @@
 // for all sound effects to replace previous Freesound API usage.
 
 const SOUNDS = {
-  // You must add these files to synthwave_space_shooter/public/audio/
-  // Kenney's (https://kenney.nl/assets/interface-sounds) or CC0 alternatives
-  laser: process.env.PUBLIC_URL + "/audio/laserSmall_000.ogg",
-  explosion: process.env.PUBLIC_URL + "/audio/explosionCrunch_000.ogg"
+  // Ensure these files exist in synthwave_space_shooter/public/audio/
+  // If you provide your own files, they should be named: laser.ogg, explosion.ogg
+  // Example CC0 alternatives: https://kenney.nl/assets/interface-sounds
+  laser: process.env.PUBLIC_URL + "/audio/laser.ogg",
+  explosion: process.env.PUBLIC_URL + "/audio/explosion.ogg"
 };
 
 // We'll keep a cache of HTMLAudioElement objects to allow multiple quick playbacks.
