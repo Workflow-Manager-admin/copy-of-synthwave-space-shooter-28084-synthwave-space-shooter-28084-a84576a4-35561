@@ -816,7 +816,11 @@ function drawBackground(ctx, frame) {
   }
 }
 
-// --------- Leaderboard utilities/UI ---------
+/*
+  Local fallback leaderboard utilities/UI (offline/dev mode)
+  Supabase is used by default, but these remain as fallback in case Supabase
+  is unavailable, misconfigured, or for local development.
+*/
 function loadLeaderboard() {
   try {
     const raw = window.localStorage.getItem("sws_leaderboard") || "[]";
