@@ -41,7 +41,10 @@ const ENEMY_TYPES = [
  * we'll also spawn more than one enemy per interval and raise a maxEnemies variable.
  */
 const ENEMY_SPAWN_INTERVAL = 580; // was 700 (spawn more often)
-const ENEMIES_PER_SPAWN = 2;      // Spawn two per interval (was 1)
+// ENEMIES_PER_SPAWN value is now dynamically calculated, see spawn logic below
+// The base number of enemies per spawn at score 0:
+const BASE_ENEMIES_PER_SPAWN = 2;
+const MAX_ENEMIES_PER_SPAWN = 8; // Prevents game from becoming impossibly hard
 const MAX_SIMULTANEOUS_ENEMIES = 10; // Increase allowed enemies on screen at once (default/old: unlimited or low)
 const ENEMY_SPEED_INCREMENT = 0.32; // was 0.25 (difficulty ramps up a little faster)
 
@@ -283,12 +286,21 @@ function App() {
       }
 
       // Spawn Enemies
+      // --- Dynamic Enemy Spawn Logic ---
+      // For every 1000 points, increase the number of enemies spawned each interval by +1 (up to max).
+      // This increases challenge over time but keeps late-game survivable.
+      // Only one increase per threshold; score must cross 1000, 2000, 3000, etc.
+      const enemiesPerSpawn = Math.min(
+        BASE_ENEMIES_PER_SPAWN + Math.floor(currentScore / 1000),
+        MAX_ENEMIES_PER_SPAWN
+      );
+
       if (
         frame - lastSpawn > ENEMY_SPAWN_INTERVAL / (1 + enemySpeed * 0.22) &&
         enemies.length < MAX_SIMULTANEOUS_ENEMIES
       ) {
         for (let n = 0;
-          n < ENEMIES_PER_SPAWN && enemies.length < MAX_SIMULTANEOUS_ENEMIES;
+          n < enemiesPerSpawn && enemies.length < MAX_SIMULTANEOUS_ENEMIES;
           n++) {
           const t = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
           enemies.push({
