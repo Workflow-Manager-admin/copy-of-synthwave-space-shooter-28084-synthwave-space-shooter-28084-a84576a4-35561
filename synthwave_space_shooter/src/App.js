@@ -415,7 +415,7 @@ function App() {
           if (pu.type === "shield") player.shield = true;
           if (pu.type === "slow") enemySpeed = Math.max(enemySpeed - 1.4, 0.15);
 
-          // Removed power-up Freesound playback (no sound on powerup collect)
+          // No power-up sound, as requested: keep laser/explosion only.
 
           powerups.splice(i, 1);
         }
