@@ -9,52 +9,61 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Create a single supabase client instance for use across the app
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// PUBLIC_INTERFACE
 /**
- * Store a player's score and name to the Supabase 'leaderboard' table.
+ * PUBLIC_INTERFACE
+ * Store a player's score and name to the Supabase 'scores' table.
  * @param {string} name - Player name
  * @param {number} score - Player score
  * @returns {Promise<boolean>}
  */
 export async function postScore(name, score) {
+  // Insert into 'scores' table with columns 'player_name' and 'score'
   const { error } = await supabase
-    .from('leaderboard')
-    .insert([{ name, points: score }]);
+    .from('scores')
+    .insert([{ player_name: name, score }]);
   if (error) throw error;
   return true;
 }
 
-// PUBLIC_INTERFACE
 /**
- * Retrieve leaderboard data from Supabase, sorted by score (descending)
+ * PUBLIC_INTERFACE
+ * Retrieve leaderboard data from Supabase 'scores' table, sorted by score (descending)
  * @param {number} limit
  * @returns {Promise<Array<{ name: string, points: number }>>}
  */
 export async function getLeaderboard(limit = 10) {
   const { data, error } = await supabase
-    .from('leaderboard')
-    .select('name, points')
-    .order('points', { ascending: false })
+    .from('scores')
+    .select('player_name, score')
+    .order('score', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return data || [];
+  // Convert to expected { name, points } format
+  return (data || []).map(row => ({
+    name: row.player_name,
+    points: row.score
+  }));
 }
 
-// PUBLIC_INTERFACE
 /**
- * Fetch the top N scores (descending) from Supabase 'leaderboard' table.
+ * PUBLIC_INTERFACE
+ * Fetch the top N scores (descending) from Supabase 'scores' table.
  * This is the new required API for leaderboard display.
  * @param {number} limit - Maximum number of records to fetch (default 10)
  * @returns {Promise<Array<{ name: string, points: number }>>}
  */
 export async function getTopScores(limit = 10) {
   const { data, error } = await supabase
-    .from('leaderboard')
-    .select('name, points')
-    .order('points', { ascending: false })
+    .from('scores')
+    .select('player_name, score')
+    .order('score', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return data || [];
+  // Convert to expected { name, points } format
+  return (data || []).map(row => ({
+    name: row.player_name,
+    points: row.score
+  }));
 }
 
 /*
