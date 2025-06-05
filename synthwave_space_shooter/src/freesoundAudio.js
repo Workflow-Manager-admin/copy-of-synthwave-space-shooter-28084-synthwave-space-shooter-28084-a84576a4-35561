@@ -1,95 +1,68 @@
-//
-// Freesound API Integration for Synthwave Space Shooter
-// Enhanced with in-session preview caching, coalesced/debounced requests, and robust rate limiting handling.
-//
+// Freesound API Integration (Laser & Explosion ONLY)
+// Ensures ONLY one laser and one explosion sound can play at any given time,
+// stopping (pausing/resetting) any previous playback when triggered again.
 
 const FREESOUND_API_KEY = "CTb7EBttQq2OjR4ChprDGUAbKnguwv188YCSxIGg";
 const FREESOUND_BASE = "https://freesound.org/apiv2";
-const PREVIEW_MP3 = "previews.preview-hq-mp3";
 const DEFAULT_QUERIES = {
   laser: "laser",
   explosion: "explosion",
-  // Only laser and explosion are active. Removed sparkle, powerup, background.
+};
+
+// ---- In-memory session caches ----
+const previewUrlCache = {};         // { eventType: url }
+const audioCache = {};              // { url: Audio }
+const previewRequests = {};         // { eventType: in-flight Promise }
+const apiThrottle = {};             // { eventType: lastRequestTimestamp }
+const MIN_API_INTERVAL_MS = 1200;   // per sound kind
+const MAX_RETRY = 4;
+const RETRY_BASE = 1800;            // ms exponential backoff
+
+// Maintain one reference per active sound type (gracefully stop previous)
+const eventAudioRef = {
+  laser: null,
+  explosion: null
 };
 
 /**
- * Freesound Per-Session Sound Caching and Request Control
- *
- * The logic below ensures:
- *  - One-and-only-one API request per sound type (e.g., "laser", "explosion") per page load/session.
- *  - Further calls always reuse the cached preview mp3 URL, never re-querying the remote API.
- *  - Multiple concurrent requests for the same type collapse to a shared Promise—no accidental bursts.
- *  - Each category is debounced/throttled with a minimal interval before any remote request is made.
- *  - If the API responds with 429 too many requests, this is handled silently using an exponential backoff and documented below.
- *
- * Usage:
- *   playFreesoundAudio("laser") // plays the cached "laser" sound or fetches & caches it if new this session.
- *   preloadFreesoundAudio("background") // preloads in background, no redundant fetch.
+ * INTERNAL: Drill safely into object paths (r.previews.preview-hq-mp3, etc)
  */
-
-// Runtime in-memory/session caches and control
-const previewUrlCache = {};      // { eventType: previewURL }
-const audioCache = {};           // { previewURL: Audio element }
-const previewRequests = {};      // { eventType: in-flight Promise }
-const requestTimestamps = {};    // { eventType: timestamp-of-last-request }
-const MIN_API_INTERVAL_MS = 1200;    // throttle for same-type fetches (in ms)
-const MAX_RETRY = 4;                 // Max exponential backoff tries
-const RETRY_BASE_DELAY = 1800;       // ms, initial backoff for 429
-const LOG_DEBUG = false;             // set true for verbose logs
-
-function apiHeaders() {
-  return {
-    Authorization: `Token ${FREESOUND_API_KEY}`
-  };
-}
-
-// Helper to safely drill into object properties
-function safeGetProp(obj, propPath, fallback = undefined) {
+function safeGetProp(obj, propPath, fallback) {
   try {
-    return propPath.split('.').reduce((acc, k) => acc && acc[k], obj) ?? fallback;
+    return propPath.split('.').reduce((o, k) => o && o[k], obj) ?? fallback;
   } catch {
     return fallback;
   }
 }
 
-// PUBLIC_INTERFACE
 /**
- * Fetch/caches a preview mp3 URL for a given sound category (eventType)
- * - Checks in-memory cache before making a remote request.
- * - Multiple concurrent calls for the same type will collapse to a shared Promise (so only one API call fires).
- * - Handles 429 (rate limit) by retrying in the background (with exponential backoff).
- * - On repeated 429 failures (MAX_RETRY), the user error is deferred to the caller but NOT thrown as an alert.
- *
- * @param {string} eventType - e.g. 'laser', 'explosion', etc.
+ * PUBLIC_INTERFACE
+ * Fetch (and cache) a preview mp3 URL for a given sound type.
+ * @param {'laser' | 'explosion'} kind
  * @returns {Promise<{url: string}>}
- *
- * Notes:
- *   If a previous API result exists for this eventType, it is reused for the entire session.
- *   If the API is rate-limited, failed calls are silently handled with backoff. Only a total failure will cause an error to be signalled.
  */
-export async function fetchPreviewUrl(eventType) {
-  const query = DEFAULT_QUERIES[eventType] || eventType;
-  if (previewUrlCache[query]) return { url: previewUrlCache[query] };
+export async function fetchPreviewUrl(kind) {
+  kind = kind === "laser" || kind === "explosion" ? kind : null;
+  if (!kind) throw new Error("Only 'laser' and 'explosion' supported");
+  const query = DEFAULT_QUERIES[kind];
 
-  // If fetch already in progress for this type, return its promise to collapse bursts
+  if (previewUrlCache[query]) return { url: previewUrlCache[query] };
   if (previewRequests[query]) return previewRequests[query];
 
-  // Debounce: Don't hit API too quickly for same type
+  // Simple debounce/throttle per type
   const now = Date.now();
   if (
-    requestTimestamps[query] &&
-    now - requestTimestamps[query] < MIN_API_INTERVAL_MS
+    apiThrottle[query] &&
+    now - apiThrottle[query] < MIN_API_INTERVAL_MS
   ) {
-    // schedule after the interval, and chain the request
     return new Promise((resolve) => {
-      setTimeout(() => resolve(fetchPreviewUrl(eventType)), MIN_API_INTERVAL_MS - (now - requestTimestamps[query]));
+      setTimeout(() => resolve(fetchPreviewUrl(kind)), MIN_API_INTERVAL_MS - (now - apiThrottle[query]));
     });
   }
-  requestTimestamps[query] = now;
+  apiThrottle[query] = now;
 
   previewRequests[query] = _fetchPreviewUrlWithRetry(query, 0)
     .then(({ url }) => {
-      // store result session-wide
       previewUrlCache[query] = url;
       delete previewRequests[query];
       return { url };
@@ -101,41 +74,37 @@ export async function fetchPreviewUrl(eventType) {
   return previewRequests[query];
 }
 
-// PRIVATE: Actual API call with exponential backoff (429 handler)
+// INTERNAL: Fetch mp3 preview for query, retrying on 429/network issues.
 async function _fetchPreviewUrlWithRetry(query, retry) {
-  let data, results, url = null;
+  let data, url = null;
   try {
     const resp = await fetch(
       `${FREESOUND_BASE}/search/text/?query=${encodeURIComponent(query)}&fields=id,name,previews,duration,license,username&filter=duration:[0.5 TO 30]&page_size=8`,
-      { headers: apiHeaders() }
+      { headers: { Authorization: `Token ${FREESOUND_API_KEY}` } }
     );
 
-    // Quiet 429 handler: Retry after delay (no user alert)
     if (resp.status === 429) {
-      if (LOG_DEBUG) console.warn(`Freesound 429 (rate limited) on "${query}" [retry ${retry+1}]`);
       if (retry >= MAX_RETRY)
-        // Final failure: bubble up, likely will produce a "sound error" in UI, but do NOT spam user with 429 details
-        throw new Error("Too many Freesound requests (rate limit hit)");
+        throw new Error("Too many Freesound requests (rate limit)");
       const retryAfter = Number(resp.headers.get("Retry-After")) * 1000
-        || Math.min(RETRY_BASE_DELAY * 2 ** retry, 12000);
-      await new Promise(resolve => setTimeout(resolve, retryAfter));
+        || Math.min(RETRY_BASE * 2 ** retry, 12000);
+      await new Promise(res => setTimeout(res, retryAfter));
       return _fetchPreviewUrlWithRetry(query, retry + 1);
     }
     data = await resp.json();
-    results = Array.isArray(data.results) ? data.results : [];
+    const results = Array.isArray(data.results) ? data.results : [];
     for (const r of results) {
-      // Intentionally check for both high and low quality mp3 previews
-      if (safeGetProp(r, "previews.preview-hq-mp3"))
+      if (safeGetProp(r, "previews.preview-hq-mp3")) {
         url = r.previews["preview-hq-mp3"];
-      else if (safeGetProp(r, "previews.preview-lq-mp3"))
+      } else if (safeGetProp(r, "previews.preview-lq-mp3")) {
         url = r.previews["preview-lq-mp3"];
+      }
       if (url) break;
     }
   } catch (e) {
-    // Also retry on network errors, up to a limit
     if (retry < MAX_RETRY) {
-      const delay = Math.min(RETRY_BASE_DELAY * 2 ** retry, 12000);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      const delay = Math.min(RETRY_BASE * 2 ** retry, 12000);
+      await new Promise(res => setTimeout(res, delay));
       return _fetchPreviewUrlWithRetry(query, retry + 1);
     }
     throw new Error(`Sound fetch error: ${e?.message ?? e}`);
@@ -144,44 +113,28 @@ async function _fetchPreviewUrlWithRetry(query, retry) {
   return { url };
 }
 
-// --- NEW/CHANGED LOGIC FOR OVERLAP MANAGEMENT ---
-
 /**
- * Only ONE laser and ONE explosion sound can play simultaneously.
- * If a new sound of the same type is requested:
- *   - It stops (and resets) the current one before starting the new, 
- *   - OR allows minimal (few ms) overlap for arcade authenticity.
+ * PUBLIC_INTERFACE
+ * Play laser or explosion Freesound audio. Only one of each type can play at once—
+ * Playing a "laser" will stop any actively playing laser, likewise for explosion.
+ * If retriggered, previous of the same type is paused/stopped/reset before new plays.
+ *
+ * @param {'laser'|'explosion'} kind
+ * @param {Object} opts ({ onLoading, onLoaded, onError, volume: number 0–1 })
  */
-const _eventTypeAudioRefs = {
-  laser: null,
-  explosion: null,
-};
-
-// PUBLIC_INTERFACE
-/**
- * Loads and plays the (cached or newly fetched) Freesound audio for a given event.
- * ENHANCED: No overlapping 'laser' or 'explosion' playback.
- * - Stops previous audio of the same type before starting a new one.
- * - (Allows up to ~18ms of overlap for arcade "snappiness" if firing in rapid succession.)
- */
-export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onError, volume = 1.0 } = {}) {
+export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, volume = 1.0 } = {}) {
+  if (onLoading) onLoading();
   let url, audio;
   try {
-    if (onLoading) onLoading();
-    ({ url } = await fetchPreviewUrl(eventType));
-
-    // Prevent/limit overlap for laser/explosion: cut previous if still playing
-    if (_eventTypeAudioRefs[eventType]) {
+    ({ url } = await fetchPreviewUrl(kind));
+    // Stop and reset previous
+    if (eventAudioRef[kind]) {
       try {
-        let lastStart = _eventTypeAudioRefs[eventType].__firedAt || 0;
-        let elapsed = Date.now() - lastStart;
-        if (elapsed > 18) {
-          _eventTypeAudioRefs[eventType].pause();
-          _eventTypeAudioRefs[eventType].currentTime = 0;
-        }
+        eventAudioRef[kind].pause();
+        eventAudioRef[kind].currentTime = 0;
       } catch {}
+      eventAudioRef[kind] = null;
     }
-
     if (audioCache[url]) {
       audio = audioCache[url].cloneNode();
     } else {
@@ -190,21 +143,15 @@ export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onErr
     }
     audio.volume = Math.max(0, Math.min(volume, 1.0));
     audio.currentTime = 0;
+    eventAudioRef[kind] = audio;
+    audio.onended = () => {
+      if (eventAudioRef[kind] === audio) eventAudioRef[kind] = null;
+    };
 
-    audio.__firedAt = Date.now();
-
-    if (eventType === "laser" || eventType === "explosion") {
-      _eventTypeAudioRefs[eventType] = audio;
-      audio.onended = () => {
-        if (_eventTypeAudioRefs[eventType] === audio) {
-          _eventTypeAudioRefs[eventType] = null;
-        }
-      };
-    }
-
+    // Only trigger once loaded (ensuring crisp start)
     return await new Promise((resolve, reject) => {
       audio.oncanplaythrough = () => {
-        onLoaded && onLoaded(audio);
+        if (onLoaded) onLoaded(audio);
         audio.play().catch(err => { onError && onError(err); });
         resolve({ status: "played", url });
       };
@@ -213,7 +160,7 @@ export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onErr
         reject({ status: "error", error: err, url });
       };
       if (audio.readyState >= 3) {
-        onLoaded && onLoaded(audio);
+        if (onLoaded) onLoaded(audio);
         audio.play().catch(err => { onError && onError(err); });
         resolve({ status: "played", url });
       }
@@ -224,14 +171,14 @@ export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onErr
   }
 }
 
-// PUBLIC_INTERFACE
 /**
- * Preloads and caches Freesound audio for a given event type (category).
- * Will not refetch if already loaded.
- * Returns nothing (fire & forget).
+ * PUBLIC_INTERFACE
+ * Preload and cache a Freesound audio for a particular kind (laser/explosion).
+ * No playback is triggered.
  */
-export function preloadFreesoundAudio(eventType) {
-  fetchPreviewUrl(eventType).then(({ url }) => {
+export function preloadFreesoundAudio(kind) {
+  if (kind !== "laser" && kind !== "explosion") return;
+  fetchPreviewUrl(kind).then(({ url }) => {
     if (!audioCache[url]) {
       const audio = new Audio(url);
       audioCache[url] = audio;
@@ -241,19 +188,9 @@ export function preloadFreesoundAudio(eventType) {
   }).catch(() => {});
 }
 
-/**
- * ==== Rate Limiting and Caching Notes ====
- *
- * - This module strictly enforces a maximum of one network API call per sound type (e.g. "laser") per browser session.
- * - All subsequent requests for that type reuse the cached URL/promise—guaranteed: no extra API burst.
- * - If the Freesound API returns a 429 (rate limited), this is HANDLED IN THE BACKGROUND: 
- *      * Automatic delays with exponential backoff, and will retry several times (no user error unless persistent).
- *      * If they still fail, a generic sound error is shown (never a 429-specific alert) on the next audio fetch attempt.
- * - This design ensures the sound system is robust against accidental bursts or repeated fetches
- *   (for example, if your code starts the game many times, or many users hit the same sound quickly in a session).
- *
- * - To update which sounds are queried for each in-game event, change the DEFAULT_QUERIES.
- * - You can adjust debounce/backoff settings with MIN_API_INTERVAL_MS and RETRY_BASE_DELAY.
- *
- * [End of module]
- */
+/*
+Sound module intentionally supports ONLY 'laser' and 'explosion'.
+All powerup, background, sparkle, etc. code is REMOVED.
+Any attempt to play a sound of another type will throw.
+The single-reference per type ensures (arcade style) rapid retrigger *cuts* the last sound with zero overlap, ensuring crisp audio.
+*/
