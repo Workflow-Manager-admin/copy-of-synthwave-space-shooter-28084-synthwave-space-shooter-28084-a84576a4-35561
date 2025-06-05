@@ -27,16 +27,17 @@ const GAME_WIDTH = 420;
 const GAME_HEIGHT = 600;
 
 // Sprite and game meta settings
-const PLAYER_W = 46, PLAYER_H = 34, PLAYER_SPEED = 6;
+const PLAYER_W = 46, PLAYER_H = 34, PLAYER_SPEED = 8.5; // was 6
 const ENEMY_W = 32, ENEMY_H = 32;
-const BULLET_W = 4, BULLET_H = 16, BULLET_SPEED = 10;
+const BULLET_W = 4, BULLET_H = 16, BULLET_SPEED = 14; // was 10
 const ENEMY_TYPES = [
-  { speed: 2, points: 100, color: "#e94560", size: 1, meme: "🐶" }, // Normal
-  { speed: 3, points: 200, color: "#fff057", size: 0.6, meme: "👽" }, // Small/fast
-  { speed: 1.4, points: 350, color: "#40ddff", size: 1.5, meme: "🤖" } // Large/slow
+  { speed: 2.5, points: 100, color: "#e94560", size: 1, meme: "🐶" },   // was 2
+  { speed: 3.8, points: 200, color: "#fff057", size: 0.6, meme: "👽" }, // was 3
+  { speed: 1.7, points: 350, color: "#40ddff", size: 1.5, meme: "🤖" }  // was 1.4
 ];
-const ENEMY_SPAWN_INTERVAL = 900;
-const ENEMY_SPEED_INCREMENT = 0.25; // Increases every 22s
+// Lowering spawn interval increases frequency
+const ENEMY_SPAWN_INTERVAL = 700; // was 900
+const ENEMY_SPEED_INCREMENT = 0.32; // was 0.25 (difficulty ramps up a little faster)
 
 /* Power-Up meta kept for game logic, but all related audio and SFX logic for power-ups/music will be stripped below. */
 const POWER_UPS = [
