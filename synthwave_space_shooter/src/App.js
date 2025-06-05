@@ -237,6 +237,14 @@ function App() {
 
       // Firing
       if (firing && frame - lastFire > (player.doubleBullet ? 7 : 13)) {
+        // Play sound whenever a laser is fired
+        playFreesoundAudio("laser", {
+          volume: 0.35,
+          onLoading: () => setSoundLoading(true),
+          onLoaded: () => setSoundLoading(false),
+          onError: (err) => setSoundError("Laser sound error"),
+        });
+
         if (player.doubleBullet) {
           bullets.push({
             x: player.x + 7,
@@ -333,6 +341,14 @@ function App() {
               fade: 20
             });
 
+            // Sound: explosion
+            playFreesoundAudio("explosion", {
+              volume: 0.45,
+              onLoading: () => setSoundLoading(true),
+              onLoaded: () => setSoundLoading(false),
+              onError: () => setSoundError("Explosion sound error"),
+            });
+
             currentScore += enemy.points;
             setScore(currentScore);
 
@@ -398,6 +414,15 @@ function App() {
           if (pu.type === "double") player.doubleBullet = true;
           if (pu.type === "shield") player.shield = true;
           if (pu.type === "slow") enemySpeed = Math.max(enemySpeed - 1.4, 0.15);
+
+          // Sound: powerup collected
+          playFreesoundAudio("powerup", {
+            volume: 0.62,
+            onLoading: () => setSoundLoading(true),
+            onLoaded: () => setSoundLoading(false),
+            onError: () => setSoundError("Power-up sound error"),
+          });
+
           powerups.splice(i, 1);
         }
       }
@@ -530,6 +555,38 @@ function App() {
     return (
       <div className="sws-root synthwave-bg">
         <SWSParallax />
+        {(soundError || soundLoading) && (
+          <div style={{
+            position: "fixed",
+            left: 10, right: 10, top: 14,
+            background: soundError ? "#e94560" : "#ffe062",
+            color: "#333",
+            zIndex: 10001,
+            padding: "6px 20px",
+            borderRadius: 10,
+            display: "flex",
+            alignItems: "center",
+            fontWeight: 600,
+            fontFamily: "Orbitron, Inter, Arial"
+          }}>
+            {soundError
+              ? <>🔇 {soundError}</>
+              : <>🔄 Loading sound...</>
+            }
+            {soundError &&
+              <button style={{
+                marginLeft: 18,
+                background: "rgba(0,0,0,0.14)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "7px",
+                padding: "1px 8px",
+                fontSize: "0.99em",
+                cursor: "pointer"
+              }} onClick={() => setSoundError(null)}>Dismiss</button>
+            }
+          </div>
+        )}
         <div className="home-menu">
           <h1 className="sws-title neon-glow">Synthwave Space Shooter</h1>
           <div className="home-btn-wrap">
