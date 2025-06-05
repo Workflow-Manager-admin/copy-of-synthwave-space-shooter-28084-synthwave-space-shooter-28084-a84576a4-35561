@@ -28,9 +28,9 @@ This project uses Supabase to store and retrieve player name/score for the leade
    if not present and will safely handle waiting for the script to load.
 
 4. **Table Structure**:  
-   You must create a Supabase table called `leaderboard` with columns:
-   - `name` (text/string)
-   - `points` (integer)
+   You must create a Supabase table called `scores` with columns:
+   - `player_name` (text/string)
+   - `score` (integer)
 
 5. **Usage in Code**:  
    Use the functions `postScore(name, score)` and `getLeaderboard(limit)` from `supabaseClient.js`.
