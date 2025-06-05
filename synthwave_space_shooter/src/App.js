@@ -38,7 +38,7 @@ const ENEMY_TYPES = [
 const ENEMY_SPAWN_INTERVAL = 900;
 const ENEMY_SPEED_INCREMENT = 0.25; // Increases every 22s
 
-// Power-Up meta
+/* Power-Up meta kept for game logic, but all related audio and SFX logic for power-ups/music will be stripped below. */
 const POWER_UPS = [
   { type: "double", color: "#12fcbf", desc: "Double Laser" },
   { type: "shield", color: "#ffe062", desc: "Shield" },
@@ -407,8 +407,7 @@ function App() {
           if (pu.type === "double") player.doubleBullet = true;
           if (pu.type === "shield") player.shield = true;
           if (pu.type === "slow") enemySpeed = Math.max(enemySpeed - 1.4, 0.15);
-
-          // No sound: power-up audio SFX have been removed per requirements.
+          // SOUND REMOVED: No audio logic for power-up pickup.
           powerups.splice(i, 1);
         }
       }
