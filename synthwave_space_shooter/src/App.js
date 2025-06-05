@@ -517,9 +517,20 @@ function App() {
             value={playerName}
             maxLength={16}
             onChange={e => setPlayerName(e.target.value)}
-            onBlur={() => {
+            onBlur={async () => {
               // Save name and leaderboard on blur
-              if (score > 0) {
+              if (score > 0 && useSupabase) {
+                try {
+                  await postSupabaseScore(playerName, score);
+                  const lb = await getSupabaseLeaderboard(10);
+                  setLeaderboard(lb);
+                  saveLeaderboard(lb);
+                } catch {
+                  const highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
+                  setLeaderboard(highScores);
+                  saveLeaderboard(highScores);
+                }
+              } else if (score > 0) {
                 const highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
                 setLeaderboard(highScores);
                 saveLeaderboard(highScores);
