@@ -488,7 +488,7 @@ function App() {
       // Start game loop
       runGame();
     }
-    // No background music/BGM handling present.
+    // Confirm: No background music/BGM handling or state loading present (requirement: fully removed).
     return () => {};
   }, [screen, runGame]);
 
