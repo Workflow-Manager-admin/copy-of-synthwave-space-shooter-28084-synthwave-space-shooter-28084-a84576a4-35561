@@ -103,20 +103,19 @@ async function _fetchPreviewUrlWithRetry(query, retry) {
   return { url };
 }
 
-// PUBLIC_INTERFACE
 /**
- * Play a laser or explosion sound from Freesound (one-per-kind only).
- * Retriggering "cuts" the previous, only one of each effect can play at once.
- * @param {'laser'|'explosion'} kind
+ * Play a laser sound from Freesound (only one laser can play at once).
+ * Retriggering "cuts" the previous laser sound.
+ * @param {'laser'} kind
  * @param {Object} opts - { onLoading, onLoaded, onError, volume }
  *  volume: 0-1
  */
 export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, volume = 1.0 } = {}) {
+  if (kind !== "laser") return; // Only support laser sound now
   if (onLoading) onLoading();
   try {
     const { url } = await fetchPreviewUrl(kind);
 
-    // Stop previous of this kind
     if (activeAudio[kind]) {
       try {
         activeAudio[kind].pause();
@@ -124,7 +123,6 @@ export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, v
       } catch {}
       activeAudio[kind] = null;
     }
-    // Always use a fresh Audio node for lowest-latency play, from cache if available (.cloneNode)
     let audio;
     if (audioCache[url]) {
       audio = audioCache[url].cloneNode();
@@ -135,13 +133,11 @@ export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, v
     audio.volume = Math.max(0, Math.min(volume, 1.0));
     audio.currentTime = 0;
 
-    // Save reference as active
     activeAudio[kind] = audio;
     audio.onended = () => {
       if (activeAudio[kind] === audio) activeAudio[kind] = null;
     };
 
-    // Only call onLoaded after it can play
     return await new Promise((resolve, reject) => {
       audio.oncanplaythrough = () => {
         if (onLoaded) onLoaded(audio);
@@ -164,12 +160,11 @@ export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, v
   }
 }
 
-// PUBLIC_INTERFACE
 /**
- * Preload (but do not play) a 'laser' or 'explosion' effect from Freesound.
+ * Preload (but do not play) a 'laser' effect from Freesound.
  */
 export function preloadFreesoundAudio(kind) {
-  if (kind !== "laser" && kind !== "explosion") return;
+  if (kind !== "laser") return;
   fetchPreviewUrl(kind).then(({ url }) => {
     if (!audioCache[url]) {
       const audio = new Audio(url);
