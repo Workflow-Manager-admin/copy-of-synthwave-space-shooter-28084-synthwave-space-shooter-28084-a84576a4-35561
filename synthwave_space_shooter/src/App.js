@@ -1,21 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import "./App.css";
 import {
-  // Replace: old getLeaderboard as getSupabaseLeaderboard
-  getTopScores
+  getTopScores,
+  postScore
 } from "./supabaseClient";
 
-// Example: Save a player's score (provided API as per subtask)
-// Uses the connected Supabase client to insert a row into the "scores" table
-async function saveScore(playerName, score) {
-  const { data, error } = await window.supabase
-    .from('scores')
-    .insert([
-      { player_name: playerName, score: score }
-    ]);
-  if (error) console.error(error)
-  else console.log('Score saved!', data)
-}
+// Remove custom saveScore and use imported postScore everywhere
 
 /**
  * --- Synthwave Space Shooter ---
@@ -131,11 +121,12 @@ function App() {
     // (Async) Update leaderboard via Supabase, fallback to localStorage if error
     const doPost = async () => {
       let prevHighScore = leaderboard.length > 0 ? leaderboard[0].points : 0;
-      let name = playerName || promptName();
+      let name = playerName && playerName.trim().length > 0 ? playerName.trim() : promptName();
+
       if (newScore > 0 && useSupabase) {
         try {
-          await saveScore(name, newScore); // CHANGED: use provided saveScore for Supabase
-          // Optionally, you may refetch the leaderboard if your in-app code expects to show the user their ranking.
+          await postScore(name, newScore);
+          // Refetch leaderboard after posting
           const lb = await getTopScores(10);
           setLeaderboard(lb);
           saveLeaderboard(lb);
@@ -529,20 +520,10 @@ function App() {
             maxLength={16}
             onChange={e => setPlayerName(e.target.value)}
             onBlur={async () => {
-              // Save name and leaderboard on blur
-              if (score > 0 && useSupabase) {
-                try {
-                  await saveScore(playerName, score); // CHANGED: use provided saveScore for Supabase
-                  const lb = await getTopScores(10);
-                  setLeaderboard(lb);
-                  saveLeaderboard(lb);
-                } catch {
-                  const highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
-                  setLeaderboard(highScores);
-                  saveLeaderboard(highScores);
-                }
-              } else if (score > 0) {
-                const highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
+              // Only update leaderboard display on name input (do not submit to Supabase, already done at game over)
+              if (score > 0) {
+                // Fallback: update local leaderboard for name correction/persistence if not already present
+                let highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
                 setLeaderboard(highScores);
                 saveLeaderboard(highScores);
               }
