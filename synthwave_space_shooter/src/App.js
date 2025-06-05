@@ -64,6 +64,11 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+  // Sound status state
+  const [soundLoading, setSoundLoading] = useState(false);
+  const [soundError, setSoundError] = useState(null);
+  const [bgmAudio, setBgmAudio] = useState(null);
+
   // Game state refs for Canvas logic
   const animationRef = useRef();
   const canvasRef = useRef();
@@ -91,6 +96,12 @@ function App() {
         setLeaderboard(loadLeaderboard());
       }
     };
+
+    // Preload all main sounds in background
+    ["laser", "explosion", "powerup", "background"].forEach((k) =>
+      preloadFreesoundAudio(k)
+    );
+
     load();
     return () => {
       mounted = false;
