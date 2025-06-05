@@ -670,6 +670,38 @@ function App() {
   return (
     <div className="sws-root game-bg">
       <SWSParallax small />
+      {(soundError || soundLoading) && (
+        <div style={{
+          position: "fixed",
+          left: 10, right: 10, top: 14,
+          background: soundError ? "#e94560" : "#ffe062",
+          color: "#333",
+          zIndex: 10001,
+          padding: "6px 20px",
+          borderRadius: 10,
+          display: "flex",
+          alignItems: "center",
+          fontWeight: 600,
+          fontFamily: "Orbitron, Inter, Arial"
+        }}>
+          {soundError
+            ? <>🔇 {soundError}</>
+            : <>🔄 Loading sound...</>
+          }
+          {soundError &&
+            <button style={{
+              marginLeft: 18,
+              background: "rgba(0,0,0,0.14)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "7px",
+              padding: "1px 8px",
+              fontSize: "0.99em",
+              cursor: "pointer"
+            }} onClick={() => setSoundError(null)}>Dismiss</button>
+          }
+        </div>
+      )}
       <div className="game-header neon-border">
         <span>
           <span className="score-label">Score:</span> {score}
