@@ -4,7 +4,7 @@ import {
   getTopScores,
   postScore
 } from "./supabaseClient";
-import { playLocalSound } from "./audioAssets";
+import { playFreesoundAudio } from "./freesoundAudio";
 // Remove custom saveScore and use imported postScore everywhere
 
 /**
