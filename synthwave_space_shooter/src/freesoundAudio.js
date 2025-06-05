@@ -1,65 +1,63 @@
-// Freesound API Integration (Laser & Explosion ONLY)
-// Ensures ONLY one laser and one explosion sound can play at any given time,
-// stopping (pausing/resetting) any previous playback when triggered again.
+// Synthwave Space Shooter - Freesound Audio Manager (Laser & Explosion Only)
+//
+// Implements a sound manager pattern: only one "laser" and only one "explosion"
+// sound can play at a time. If retriggered, the previous sound of that kind is 
+// stopped (paused/reset) and the new one is started. 
+// This ensures crisp immediate retrigger and arcade-style cut-off.
+//
+// Usage:
+//    import { playFreesoundAudio, preloadFreesoundAudio } from './freesoundAudio';
+//    playFreesoundAudio('laser', { volume: 0.5, ...callbacks });
+//
 
 const FREESOUND_API_KEY = "CTb7EBttQq2OjR4ChprDGUAbKnguwv188YCSxIGg";
 const FREESOUND_BASE = "https://freesound.org/apiv2";
-const DEFAULT_QUERIES = {
+const EFFECT_QUERY = {
   laser: "laser",
   explosion: "explosion",
 };
-
-// ---- In-memory session caches ----
-const previewUrlCache = {};         // { eventType: url }
-const audioCache = {};              // { url: Audio }
-const previewRequests = {};         // { eventType: in-flight Promise }
-const apiThrottle = {};             // { eventType: lastRequestTimestamp }
-const MIN_API_INTERVAL_MS = 1200;   // per sound kind
+const MIN_API_INTERVAL_MS = 1200; // per sound kind
 const MAX_RETRY = 4;
-const RETRY_BASE = 1800;            // ms exponential backoff
+const RETRY_BASE = 1800; // ms for exponential backoff
 
-// Maintain one reference per active sound type (gracefully stop previous)
-const eventAudioRef = {
+// Keeps the preview mp3 URL for each event type
+const previewUrlCache = {}; // { kind: url }
+const previewRequests = {}; // { kind: in-flight Promise }
+const lastQueryTimestamps = {}; // Throttle API: { kind: lastRequestTime }
+
+// Caches loaded (not playing) Audio elements by url, so we can .cloneNode() for new playbacks
+const audioCache = {}; // { url: HTMLAudioElement }
+
+// Main sound manager: reference to currently playing laser/explosion Audio objects
+const activeAudio = {
   laser: null,
-  explosion: null
+  explosion: null,
 };
 
-/**
- * INTERNAL: Drill safely into object paths (r.previews.preview-hq-mp3, etc)
- */
-function safeGetProp(obj, propPath, fallback) {
+// --- INTERNAL: Drill safely into nested props
+function safeGetProp(obj, path, fallback) {
   try {
-    return propPath.split('.').reduce((o, k) => o && o[k], obj) ?? fallback;
+    return path.split('.').reduce((o, k) => o && o[k], obj) ?? fallback;
   } catch {
     return fallback;
   }
 }
 
-/**
- * PUBLIC_INTERFACE
- * Fetch (and cache) a preview mp3 URL for a given sound type.
- * @param {'laser' | 'explosion'} kind
- * @returns {Promise<{url: string}>}
- */
-export async function fetchPreviewUrl(kind) {
-  kind = kind === "laser" || kind === "explosion" ? kind : null;
-  if (!kind) throw new Error("Only 'laser' and 'explosion' supported");
-  const query = DEFAULT_QUERIES[kind];
-
+// --- INTERNAL: Fetch and cache valid Freesound preview mp3 URL for kind
+async function fetchPreviewUrl(kind) {
+  if (![ "laser", "explosion" ].includes(kind)) throw new Error('Invalid kind for freesound: ' + kind);
+  const query = EFFECT_QUERY[kind];
   if (previewUrlCache[query]) return { url: previewUrlCache[query] };
   if (previewRequests[query]) return previewRequests[query];
 
-  // Simple debounce/throttle per type
+  // Throttle per type
   const now = Date.now();
-  if (
-    apiThrottle[query] &&
-    now - apiThrottle[query] < MIN_API_INTERVAL_MS
-  ) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(fetchPreviewUrl(kind)), MIN_API_INTERVAL_MS - (now - apiThrottle[query]));
-    });
+  if (lastQueryTimestamps[query] && now - lastQueryTimestamps[query] < MIN_API_INTERVAL_MS) {
+    // Wait remaining interval and retry
+    const wait = MIN_API_INTERVAL_MS - (now - lastQueryTimestamps[query]);
+    return new Promise(res => setTimeout(() => res(fetchPreviewUrl(kind)), wait));
   }
-  apiThrottle[query] = now;
+  lastQueryTimestamps[query] = now;
 
   previewRequests[query] = _fetchPreviewUrlWithRetry(query, 0)
     .then(({ url }) => {
@@ -74,18 +72,16 @@ export async function fetchPreviewUrl(kind) {
   return previewRequests[query];
 }
 
-// INTERNAL: Fetch mp3 preview for query, retrying on 429/network issues.
+// --- INTERNAL: Freesound API search, with retry/throttle for 429s/network
 async function _fetchPreviewUrlWithRetry(query, retry) {
   let data, url = null;
   try {
     const resp = await fetch(
-      `${FREESOUND_BASE}/search/text/?query=${encodeURIComponent(query)}&fields=id,name,previews,duration,license,username&filter=duration:[0.5 TO 30]&page_size=8`,
+      `${FREESOUND_BASE}/search/text/?query=${encodeURIComponent(query)}&fields=previews,duration&filter=duration:[0.5 TO 28]&page_size=7`,
       { headers: { Authorization: `Token ${FREESOUND_API_KEY}` } }
     );
-
     if (resp.status === 429) {
-      if (retry >= MAX_RETRY)
-        throw new Error("Too many Freesound requests (rate limit)");
+      if (retry >= MAX_RETRY) throw new Error('Too many Freesound requests (rate limit)');
       const retryAfter = Number(resp.headers.get("Retry-After")) * 1000
         || Math.min(RETRY_BASE * 2 ** retry, 12000);
       await new Promise(res => setTimeout(res, retryAfter));
@@ -94,11 +90,7 @@ async function _fetchPreviewUrlWithRetry(query, retry) {
     data = await resp.json();
     const results = Array.isArray(data.results) ? data.results : [];
     for (const r of results) {
-      if (safeGetProp(r, "previews.preview-hq-mp3")) {
-        url = r.previews["preview-hq-mp3"];
-      } else if (safeGetProp(r, "previews.preview-lq-mp3")) {
-        url = r.previews["preview-lq-mp3"];
-      }
+      url = safeGetProp(r, "previews.preview-hq-mp3") || safeGetProp(r, "previews.preview-lq-mp3");
       if (url) break;
     }
   } catch (e) {
@@ -113,28 +105,29 @@ async function _fetchPreviewUrlWithRetry(query, retry) {
   return { url };
 }
 
+// PUBLIC_INTERFACE
 /**
- * PUBLIC_INTERFACE
- * Play laser or explosion Freesound audio. Only one of each type can play at once—
- * Playing a "laser" will stop any actively playing laser, likewise for explosion.
- * If retriggered, previous of the same type is paused/stopped/reset before new plays.
- *
+ * Play a laser or explosion sound from Freesound (one-per-kind only).
+ * Retriggering "cuts" the previous, only one of each effect can play at once.
  * @param {'laser'|'explosion'} kind
- * @param {Object} opts ({ onLoading, onLoaded, onError, volume: number 0–1 })
+ * @param {Object} opts - { onLoading, onLoaded, onError, volume }
+ *  volume: 0-1
  */
 export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, volume = 1.0 } = {}) {
   if (onLoading) onLoading();
-  let url, audio;
   try {
-    ({ url } = await fetchPreviewUrl(kind));
-    // Stop and reset previous
-    if (eventAudioRef[kind]) {
+    const { url } = await fetchPreviewUrl(kind);
+
+    // Stop previous of this kind
+    if (activeAudio[kind]) {
       try {
-        eventAudioRef[kind].pause();
-        eventAudioRef[kind].currentTime = 0;
+        activeAudio[kind].pause();
+        activeAudio[kind].currentTime = 0;
       } catch {}
-      eventAudioRef[kind] = null;
+      activeAudio[kind] = null;
     }
+    // Always use a fresh Audio node for lowest-latency play, from cache if available (.cloneNode)
+    let audio;
     if (audioCache[url]) {
       audio = audioCache[url].cloneNode();
     } else {
@@ -143,12 +136,14 @@ export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, v
     }
     audio.volume = Math.max(0, Math.min(volume, 1.0));
     audio.currentTime = 0;
-    eventAudioRef[kind] = audio;
+
+    // Save reference as active
+    activeAudio[kind] = audio;
     audio.onended = () => {
-      if (eventAudioRef[kind] === audio) eventAudioRef[kind] = null;
+      if (activeAudio[kind] === audio) activeAudio[kind] = null;
     };
 
-    // Only trigger once loaded (ensuring crisp start)
+    // Only call onLoaded after it can play
     return await new Promise((resolve, reject) => {
       audio.oncanplaythrough = () => {
         if (onLoaded) onLoaded(audio);
@@ -171,10 +166,9 @@ export async function playFreesoundAudio(kind, { onLoading, onLoaded, onError, v
   }
 }
 
+// PUBLIC_INTERFACE
 /**
- * PUBLIC_INTERFACE
- * Preload and cache a Freesound audio for a particular kind (laser/explosion).
- * No playback is triggered.
+ * Preload (but do not play) a 'laser' or 'explosion' effect from Freesound.
  */
 export function preloadFreesoundAudio(kind) {
   if (kind !== "laser" && kind !== "explosion") return;
@@ -189,8 +183,7 @@ export function preloadFreesoundAudio(kind) {
 }
 
 /*
-Sound module intentionally supports ONLY 'laser' and 'explosion'.
-All powerup, background, sparkle, etc. code is REMOVED.
-Any attempt to play a sound of another type will throw.
-The single-reference per type ensures (arcade style) rapid retrigger *cuts* the last sound with zero overlap, ensuring crisp audio.
-*/
+ * The single-reference-per-type activeAudio object ensures arcade-style crisp
+ * retriggering. At most one "laser" and one "explosion" can play simultaneously.
+ * All other effect types are unsupported by design.
+ */
