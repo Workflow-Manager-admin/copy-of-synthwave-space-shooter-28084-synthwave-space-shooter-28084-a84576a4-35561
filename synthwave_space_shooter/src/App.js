@@ -4,10 +4,7 @@ import {
   getTopScores,
   postScore
 } from "./supabaseClient";
-import {
-  playFreesoundAudio,
-  preloadFreesoundAudio
-} from "./freesoundAudio";
+import { playLocalSound } from "./audioAssets";
 // Remove custom saveScore and use imported postScore everywhere
 
 /**
@@ -97,10 +94,7 @@ function App() {
       }
     };
 
-    // Preload only laser and explosion sounds in background (removed powerup & background)
-    ["laser", "explosion"].forEach((k) =>
-      preloadFreesoundAudio(k)
-    );
+    // No need to preload local assets, browser loads from disk instantly.
 
     load();
     return () => {
