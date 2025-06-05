@@ -231,12 +231,12 @@ function App() {
 
       // Firing
       if (firing && frame - lastFire > (player.doubleBullet ? 7 : 13)) {
-        // Play sound whenever a laser is fired
-        playLocalSound("laser", {
+        // Play sound whenever a laser is fired (only laser, using Freesound single-instance logic)
+        playFreesoundAudio("laser", {
           volume: 0.32,
-          allowOverlap: true,
+          onLoading: () => setSoundLoading(true),
           onLoaded: () => setSoundLoading(false),
-          onError: (err) => setSoundError("Laser sound error"),
+          onError: (err) => setSoundError("Laser sound error")
         });
 
         if (player.doubleBullet) {
