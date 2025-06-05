@@ -136,7 +136,7 @@ function App() {
         try {
           await saveScore(name, newScore); // CHANGED: use provided saveScore for Supabase
           // Optionally, you may refetch the leaderboard if your in-app code expects to show the user their ranking.
-          const lb = await getSupabaseLeaderboard(10);
+          const lb = await getTopScores(10);
           setLeaderboard(lb);
           saveLeaderboard(lb);
           prevHighScore = lb.length > 0 ? lb[0].points : 0;
@@ -533,7 +533,7 @@ function App() {
               if (score > 0 && useSupabase) {
                 try {
                   await saveScore(playerName, score); // CHANGED: use provided saveScore for Supabase
-                  const lb = await getSupabaseLeaderboard(10);
+                  const lb = await getTopScores(10);
                   setLeaderboard(lb);
                   saveLeaderboard(lb);
                 } catch {
