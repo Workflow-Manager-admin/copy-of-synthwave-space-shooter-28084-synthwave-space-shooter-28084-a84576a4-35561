@@ -531,7 +531,7 @@ function App() {
               // Save name and leaderboard on blur
               if (score > 0 && useSupabase) {
                 try {
-                  await postSupabaseScore(playerName, score);
+                  await saveScore(playerName, score); // CHANGED: use provided saveScore for Supabase
                   const lb = await getSupabaseLeaderboard(10);
                   setLeaderboard(lb);
                   saveLeaderboard(lb);
