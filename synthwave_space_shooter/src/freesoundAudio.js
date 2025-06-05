@@ -144,23 +144,44 @@ async function _fetchPreviewUrlWithRetry(query, retry) {
   return { url };
 }
 
+// --- NEW/CHANGED LOGIC FOR OVERLAP MANAGEMENT ---
+
+/**
+ * Only ONE laser and ONE explosion sound can play simultaneously.
+ * If a new sound of the same type is requested:
+ *   - It stops (and resets) the current one before starting the new, 
+ *   - OR allows minimal (few ms) overlap for arcade authenticity.
+ */
+const _eventTypeAudioRefs = {
+  laser: null,
+  explosion: null,
+};
+
 // PUBLIC_INTERFACE
 /**
  * Loads and plays the (cached or newly fetched) Freesound audio for a given event.
- * - No more than one API fetch per eventType per session.
- * - Plays the cached Audio node if already loaded, otherwise preloads then plays.
- *   (Uses .cloneNode to allow for overlap if user fires rapidly.)
- * - volume: optional (default 1.0)
- * - onLoading/onLoaded/onError: callback hooks for UI loading spinners/barriers.
- *
- * 429 error logic: If a 429 arises, will backoff and retry in the background; if persistent, only then does error bubble up.
+ * ENHANCED: No overlapping 'laser' or 'explosion' playback.
+ * - Stops previous audio of the same type before starting a new one.
+ * - (Allows up to ~18ms of overlap for arcade "snappiness" if firing in rapid succession.)
  */
 export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onError, volume = 1.0 } = {}) {
   let url, audio;
   try {
     if (onLoading) onLoading();
     ({ url } = await fetchPreviewUrl(eventType));
-    // Use cached Audio: cloneNode so multiple sounds can play at once without waiting
+
+    // Prevent/limit overlap for laser/explosion: cut previous if still playing
+    if (_eventTypeAudioRefs[eventType]) {
+      try {
+        let lastStart = _eventTypeAudioRefs[eventType].__firedAt || 0;
+        let elapsed = Date.now() - lastStart;
+        if (elapsed > 18) {
+          _eventTypeAudioRefs[eventType].pause();
+          _eventTypeAudioRefs[eventType].currentTime = 0;
+        }
+      } catch {}
+    }
+
     if (audioCache[url]) {
       audio = audioCache[url].cloneNode();
     } else {
@@ -169,6 +190,18 @@ export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onErr
     }
     audio.volume = Math.max(0, Math.min(volume, 1.0));
     audio.currentTime = 0;
+
+    audio.__firedAt = Date.now();
+
+    if (eventType === "laser" || eventType === "explosion") {
+      _eventTypeAudioRefs[eventType] = audio;
+      audio.onended = () => {
+        if (_eventTypeAudioRefs[eventType] === audio) {
+          _eventTypeAudioRefs[eventType] = null;
+        }
+      };
+    }
+
     return await new Promise((resolve, reject) => {
       audio.oncanplaythrough = () => {
         onLoaded && onLoaded(audio);
@@ -179,7 +212,6 @@ export async function playFreesoundAudio(eventType, { onLoading, onLoaded, onErr
         onError && onError(err);
         reject({ status: "error", error: err, url });
       };
-      // If audio is already loaded/buffered
       if (audio.readyState >= 3) {
         onLoaded && onLoaded(audio);
         audio.play().catch(err => { onError && onError(err); });
