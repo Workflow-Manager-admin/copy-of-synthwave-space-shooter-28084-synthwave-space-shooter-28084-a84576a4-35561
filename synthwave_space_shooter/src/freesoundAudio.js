@@ -14,7 +14,6 @@ const FREESOUND_API_KEY = "CTb7EBttQq2OjR4ChprDGUAbKnguwv188YCSxIGg";
 const FREESOUND_BASE = "https://freesound.org/apiv2";
 const EFFECT_QUERY = {
   laser: "laser",
-  explosion: "explosion",
 };
 const MIN_API_INTERVAL_MS = 1200; // per sound kind
 const MAX_RETRY = 4;
@@ -28,10 +27,9 @@ const lastQueryTimestamps = {}; // Throttle API: { kind: lastRequestTime }
 // Caches loaded (not playing) Audio elements by url, so we can .cloneNode() for new playbacks
 const audioCache = {}; // { url: HTMLAudioElement }
 
-// Main sound manager: reference to currently playing laser/explosion Audio objects
+// Main sound manager: reference to currently playing laser Audio object only
 const activeAudio = {
   laser: null,
-  explosion: null,
 };
 
 // --- INTERNAL: Drill safely into nested props

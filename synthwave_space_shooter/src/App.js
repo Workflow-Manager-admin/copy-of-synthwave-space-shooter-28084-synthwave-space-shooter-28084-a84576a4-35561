@@ -336,7 +336,7 @@ function App() {
               enemy
             )
           ) {
-            // Explosion, add score
+            // Explosion (visual only), add score
             explosions.push({
               x:
                 enemy.x +
@@ -346,14 +346,6 @@ function App() {
               r: enemy.size * 30,
               c: enemy.color,
               fade: 20
-            });
-
-            // Sound: explosion (arcade retrigger SFX via Freesound)
-            playFreesoundAudio("explosion", {
-              volume: 0.41,
-              onLoading: () => setSoundLoading(true),
-              onLoaded: () => setSoundLoading(false),
-              onError: () => setSoundError("Explosion sound error")
             });
 
             currentScore += enemy.points;
