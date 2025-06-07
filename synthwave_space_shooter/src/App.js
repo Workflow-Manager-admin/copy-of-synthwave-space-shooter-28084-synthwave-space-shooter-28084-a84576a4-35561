@@ -316,24 +316,59 @@ function App() {
         if (bullets[i].y < -BULLET_H) bullets.splice(i, 1);
       }
 
-      // Spawn Enemies
-      // --- Dynamic Enemy Spawn Logic ---
-      // For every 1000 points, increase the number of enemies spawned each interval by +1 (up to max).
-      // This increases challenge over time but keeps late-game survivable.
-      // Only one increase per threshold; score must cross 1000, 2000, 3000, etc.
-      const enemiesPerSpawn = Math.min(
-        BASE_ENEMIES_PER_SPAWN + Math.floor(currentScore / 1000),
-        MAX_ENEMIES_PER_SPAWN
-      );
+      // --- Modular Difficulty Scaling Logic ---
+      // PUBLIC_INTERFACE
+      /**
+       * Compute current enemy difficulty settings based on score milestones.
+       * Every 2500 points increases difficulty. Returns spawn/difficulty params.
+       * @param {number} score - Player score
+       * @returns {object} config { enemiesPerSpawn, enemySpeedBonus, enemyTypes, spawnInterval, maxEnemies }
+       */
+      function getDifficultyForScore(score) {
+        // Milestone: every 2500 points
+        const milestone = Math.floor(score / 2500);
 
+        // Configure scaling per milestone -- easy to adjust here for future tuning
+        // Example scaling rules:
+        // - Enemies per spawn: start at 1 (prior to first 2500), up to 8 at higher milestones
+        // - Enemy speed bonus: increases each milestone
+        // - Limit which enemy types are included at low scores
+        const baseEnemies = 1;
+        const enemiesPerSpawn = Math.min(baseEnemies + milestone, MAX_ENEMIES_PER_SPAWN);
+        const enemySpeedBonus = 1 + milestone * 0.55; // each milestone adds more
+        const spawnInterval = Math.max(ENEMY_SPAWN_INTERVAL - milestone * 70, 280); // decreases faster spawn after milestones
+        const maxEnemies = Math.min(MAX_SIMULTANEOUS_ENEMIES + milestone, 16);
+
+        // Make only easier (first) enemy type below first milestone, add more types as difficulty increases
+        const typesAllowed = milestone === 0
+          ? [ENEMY_TYPES[0]]
+          : milestone === 1
+            ? [ENEMY_TYPES[0], ENEMY_TYPES[1]]
+            : ENEMY_TYPES;
+
+        return {
+          enemiesPerSpawn,
+          enemySpeedBonus,
+          enemyTypes: typesAllowed,
+          spawnInterval,
+          maxEnemies
+        };
+      }
+
+      // Get the current difficulty config based on the player's score
+      const currentDiff = getDifficultyForScore(currentScore);
+
+      // --- Modular Enemy Spawn Logic ---
       if (
-        frame - lastSpawn > ENEMY_SPAWN_INTERVAL / (1 + enemySpeed * 0.22) &&
-        enemies.length < MAX_SIMULTANEOUS_ENEMIES
+        frame - lastSpawn > currentDiff.spawnInterval / (currentDiff.enemySpeedBonus * 0.78) &&
+        enemies.length < currentDiff.maxEnemies
       ) {
-        for (let n = 0;
-          n < enemiesPerSpawn && enemies.length < MAX_SIMULTANEOUS_ENEMIES;
-          n++) {
-          const t = ENEMY_TYPES[Math.floor(Math.random() * ENEMY_TYPES.length)];
+        for (
+          let n = 0;
+          n < currentDiff.enemiesPerSpawn && enemies.length < currentDiff.maxEnemies;
+          n++
+        ) {
+          const t = currentDiff.enemyTypes[Math.floor(Math.random() * currentDiff.enemyTypes.length)];
           enemies.push({
             x: Math.random() * (GAME_WIDTH - ENEMY_W * t.size),
             y: -ENEMY_H * t.size - 10,
@@ -493,10 +528,15 @@ function App() {
         if (ex.fade < 0) explosions.splice(i, 1);
       }
 
-      // Difficulty ramps
-      if (frame % speedUpEvery === 0 && enemySpeed < 8) {
-        enemySpeed += ENEMY_SPEED_INCREMENT;
-      }
+      // --- Modular Difficulty Ramping (only at milestone) ---
+      // Bonus enemy speed now controlled by milestone-based config (see getDifficultyForScore).
+      // Optionally, keep this section for periodic speedUpEvery frame ramp, but milestone logic is primary.
+      // (Keeping periodic for legacy compatibility, but can be removed if only milestone jumps are desired)
+      //      if (frame % speedUpEvery === 0 && enemySpeed < 8) {
+      //        enemySpeed += ENEMY_SPEED_INCREMENT;
+      //      }
+      // Set the true enemy speed according to current milestone
+      enemySpeed = currentDiff.enemySpeedBonus;
 
       frame++;
       animationRef.current = requestAnimationFrame(animate);
