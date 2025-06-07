@@ -611,18 +611,9 @@ function App() {
 
   // Game Over Screen
   // === Glory Name Prompt Logic State ===
-  const [gloryNameInput, setGloryNameInput] = useState("");
-  const [gloryNameStatus, setGloryNameStatus] = useState(""); // e.g., "saving", "saved", "error"
-  const [gloryNameSaved, setGloryNameSaved] = useState(false);
+  // (Removed duplicate state hooks)
 
-  // Reset Glory Name UI when entering gameover
-  useEffect(() => {
-    if (screen === "gameover") {
-      setGloryNameInput("");
-      setGloryNameStatus("");
-      setGloryNameSaved(false);
-    }
-  }, [screen]);
+  // (Removed duplicate useEffect for reset)
 
   // Triggered when user clicks "Submit Glory Name"
   async function handleGloryNameSubmit() {
@@ -637,8 +628,10 @@ function App() {
       setPlayerName(trimmed);
       window.sessionStorage.setItem("sws_playerName", trimmed);
 
-      // Post name as a zero-point record for trace/authorship if not yet sent to Supabase
-      await postScore(trimmed, 0);
+      // Post both glory name AND score to Supabase in a single API call
+      // This ensures { player_name, score } is stored as required by leaderboard
+      await postScore(trimmed, score);
+
       setGloryNameStatus("saved");
       setGloryNameSaved(true);
     } catch (err) {
