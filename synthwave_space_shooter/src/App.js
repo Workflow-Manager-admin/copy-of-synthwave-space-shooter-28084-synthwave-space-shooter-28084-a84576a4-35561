@@ -68,7 +68,16 @@ function App() {
   const [lives, setLives] = useState(3);
   const [leaderboard, setLeaderboard] = useState([]);
   const [memeMsg, setMemeMsg] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  // Ensure name is only prompted/entered once per session
+  const [playerName, setPlayerName] = useState(() => {
+    // Check sessionStorage for stored name
+    try {
+      const stored = window.sessionStorage.getItem("sws_playerName") || "";
+      return stored;
+    } catch {
+      return "";
+    }
+  });
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Sound status state
@@ -138,7 +147,14 @@ function App() {
     // (Async) Update leaderboard via Supabase, fallback to localStorage if error
     const doPost = async () => {
       let prevHighScore = leaderboard.length > 0 ? leaderboard[0].points : 0;
-      let name = playerName && playerName.trim().length > 0 ? playerName.trim() : promptName();
+      let name = (playerName && playerName.trim()) || "";
+
+      // If name isn't set, block posting score and prompt the user to enter it
+      if (!name) {
+        setMemeMsg("Please enter your glory name above to record your score!");
+        setScreen("gameover");
+        return;
+      }
 
       if (newScore > 0 && useSupabase) {
         try {
@@ -587,24 +603,40 @@ function App() {
           <h2 className="sws-title neon-glow">Game Over</h2>
           <div className="big-score">Your Score: {score}</div>
           <div className="meme-motivation">{memeMsg}</div>
-          <input
-            className="player-input"
-            style={{ marginTop: 12 }}
-            placeholder="Enter your glory name"
-            type="text"
-            value={playerName}
-            maxLength={16}
-            onChange={e => setPlayerName(e.target.value)}
-            onBlur={async () => {
-              // Only update leaderboard display on name input (do not submit to Supabase, already done at game over)
-              if (score > 0) {
-                // Fallback: update local leaderboard for name correction/persistence if not already present
-                let highScores = insertLeaderboard(loadLeaderboard(), playerName, score, 10);
-                setLeaderboard(highScores);
-                saveLeaderboard(highScores);
-              }
-            }}
-          />
+          {!playerName && (
+            <input
+              className="player-input"
+              style={{ marginTop: 12 }}
+              placeholder="Enter your glory name"
+              type="text"
+              value={playerName}
+              maxLength={16}
+              autoFocus
+              onChange={e => {
+                const value = e.target.value;
+                setPlayerName(value);
+                try {
+                  window.sessionStorage.setItem("sws_playerName", value);
+                } catch {}
+              }}
+              onBlur={async () => {
+                if (playerName && playerName.trim().length > 0) {
+                  try {
+                    window.sessionStorage.setItem("sws_playerName", playerName.trim());
+                  } catch {}
+                }
+                // Only update leaderboard display on name input (do not submit to Supabase, already done at game over)
+                if (score > 0 && playerName && playerName.trim().length > 0) {
+                  let highScores = insertLeaderboard(loadLeaderboard(), playerName.trim(), score, 10);
+                  setLeaderboard(highScores);
+                  saveLeaderboard(highScores);
+                }
+              }}
+            />
+          )}
+          {playerName && (
+            <div style={{ color: "#ffe062", margin: "12px 0 2px 0", fontFamily: "Orbitron, monospace" }}>Welcome, {playerName}!</div>
+          )}
           <div className="home-btn-wrap">
             <button className="bold-btn" onClick={startGame}>
               Restart
@@ -942,10 +974,7 @@ function insertLeaderboard(ls, name, score, limit) {
   if (lb.length > (limit || 8)) lb = lb.slice(0, limit || 8);
   return lb;
 }
-function promptName() {
-  let name = window.prompt("Enter your glory name for the leaderboard (max 15 chars):", "");
-  return name ? name.trim().slice(0, 15) : "Space Dawg";
-}
+// (promptName utility removed; initial name entry now only via input and stored in sessionStorage)
 
 /**
  * LeaderboardOverlay
