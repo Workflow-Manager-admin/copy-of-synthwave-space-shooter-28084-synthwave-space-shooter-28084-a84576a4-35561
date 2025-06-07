@@ -61,7 +61,7 @@ const MEME_MESSAGES = [
   "Did you really try your best?", "That was... totally dawg.", "You have been out-synthwaved."
 ];
 
-// --- Main App ---
+  // --- Main App ---
 function App() {
   const [screen, setScreen] = useState("home"); // home, game, gameover
   const [score, setScore] = useState(0);
@@ -79,6 +79,21 @@ function App() {
     }
   });
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  // -- Glory Name Prompt Logic State (must always be top-level to avoid hook order bugs) --
+  const [gloryNameInput, setGloryNameInput] = useState("");
+  const [gloryNameStatus, setGloryNameStatus] = useState(""); // e.g., "saving", "saved", "error"
+  const [gloryNameSaved, setGloryNameSaved] = useState(false);
+
+  // Reset Glory Name UI when entering gameover
+  useEffect(() => {
+    if (screen === "gameover") {
+      setGloryNameInput("");
+      setGloryNameStatus("");
+      setGloryNameSaved(false);
+    }
+  }, [screen]);
+  // -----------------------------------------------
 
   // Sound status state
   const [soundLoading, setSoundLoading] = useState(false);
@@ -595,6 +610,42 @@ function App() {
   }
 
   // Game Over Screen
+  // === Glory Name Prompt Logic State ===
+  const [gloryNameInput, setGloryNameInput] = useState("");
+  const [gloryNameStatus, setGloryNameStatus] = useState(""); // e.g., "saving", "saved", "error"
+  const [gloryNameSaved, setGloryNameSaved] = useState(false);
+
+  // Reset Glory Name UI when entering gameover
+  useEffect(() => {
+    if (screen === "gameover") {
+      setGloryNameInput("");
+      setGloryNameStatus("");
+      setGloryNameSaved(false);
+    }
+  }, [screen]);
+
+  // Triggered when user clicks "Submit Glory Name"
+  async function handleGloryNameSubmit() {
+    const trimmed = (gloryNameInput || "").trim();
+    if (!trimmed) {
+      setGloryNameStatus("Please enter a name.");
+      return;
+    }
+    setGloryNameStatus("saving");
+    try {
+      // Save name to sessionStorage and App state
+      setPlayerName(trimmed);
+      window.sessionStorage.setItem("sws_playerName", trimmed);
+
+      // Post name as a zero-point record for trace/authorship if not yet sent to Supabase
+      await postScore(trimmed, 0);
+      setGloryNameStatus("saved");
+      setGloryNameSaved(true);
+    } catch (err) {
+      setGloryNameStatus("error");
+    }
+  }
+
   if (screen === "gameover") {
     return (
       <div className="sws-root synthwave-bg">
@@ -604,38 +655,86 @@ function App() {
           <div className="big-score">Your Score: {score}</div>
           <div className="meme-motivation">{memeMsg}</div>
           {!playerName && (
-            <input
-              className="player-input"
-              style={{ marginTop: 12 }}
-              placeholder="Enter your glory name"
-              type="text"
-              value={playerName}
-              maxLength={16}
-              autoFocus
-              onChange={e => {
-                const value = e.target.value;
-                setPlayerName(value);
-                try {
-                  window.sessionStorage.setItem("sws_playerName", value);
-                } catch {}
-              }}
-              onBlur={async () => {
-                if (playerName && playerName.trim().length > 0) {
-                  try {
-                    window.sessionStorage.setItem("sws_playerName", playerName.trim());
-                  } catch {}
-                }
-                // Only update leaderboard display on name input (do not submit to Supabase, already done at game over)
-                if (score > 0 && playerName && playerName.trim().length > 0) {
-                  let highScores = insertLeaderboard(loadLeaderboard(), playerName.trim(), score, 10);
-                  setLeaderboard(highScores);
-                  saveLeaderboard(highScores);
-                }
-              }}
-            />
+            <div style={{
+              marginTop: 18,
+              marginBottom: 8,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center"
+            }}>
+              <label
+                htmlFor="glory-name-input"
+                style={{
+                  fontFamily: "Orbitron, monospace",
+                  color: "#ffe062",
+                  fontSize: "1.1rem",
+                  marginBottom: 7,
+                  letterSpacing: "0.01em"
+                }}
+              >
+                🚀 Enter Your <span style={{color:'#e94560'}}>Glory Name</span>:
+              </label>
+              <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
+                <input
+                  id="glory-name-input"
+                  className="player-input"
+                  placeholder="Glory name"
+                  type="text"
+                  value={gloryNameInput}
+                  maxLength={16}
+                  autoFocus
+                  onChange={e => {
+                    setGloryNameInput(e.target.value);
+                    setGloryNameStatus(""); // Clear any old error/success
+                  }}
+                  style={{ minWidth: 120 }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleGloryNameSubmit();
+                  }}
+                  disabled={gloryNameStatus === "saving" || gloryNameSaved}
+                  tabIndex={0}
+                />
+                <button
+                  className="btn"
+                  style={{
+                    padding: "7px 19px",
+                    background: "var(--sw-neon-yellow)",
+                    color: "#262121",
+                    borderRadius: "8px",
+                    fontFamily: "Orbitron, monospace",
+                    fontWeight: "bold",
+                    opacity: gloryNameStatus === "saving" || gloryNameSaved ? 0.75 : 1,
+                    cursor: gloryNameStatus === "saving" || gloryNameSaved ? "not-allowed" : "pointer",
+                    border: "none",
+                    boxShadow: "0 0 11px #ffe06255"
+                  }}
+                  onClick={handleGloryNameSubmit}
+                  disabled={gloryNameStatus === "saving" || gloryNameSaved}
+                  tabIndex={0}
+                >
+                  {gloryNameSaved ? "Saved!" : gloryNameStatus === "saving" ? "Saving..." : "Submit"}
+                </button>
+              </div>
+              {/* Status below input */}
+              <div style={{
+                minHeight: 24,
+                fontSize: '1rem',
+                marginTop: 4,
+                color: gloryNameStatus === "error" ? "#e94560" : (gloryNameStatus === "saved" ? "#51f2aa" : "#ffe062"),
+                fontFamily: "Orbitron, monospace"
+              }}>
+                {gloryNameStatus === "saving" ? "Saving your name..." :
+                gloryNameStatus === "saved" && "Your Glory Name was saved!"}
+                {gloryNameStatus === "error" && "Could not save name. Try again?"}
+                {(!gloryNameStatus || gloryNameStatus === "Please enter a name.") && null}
+                {gloryNameStatus === "Please enter a name." && "Please enter a Glory Name!"}
+              </div>
+            </div>
           )}
           {playerName && (
-            <div style={{ color: "#ffe062", margin: "12px 0 2px 0", fontFamily: "Orbitron, monospace" }}>Welcome, {playerName}!</div>
+            <div style={{ color: "#ffe062", margin: "12px 0 2px 0", fontFamily: "Orbitron, monospace" }}>
+              Welcome, <span style={{ color: "#e94560", fontWeight: 600 }}>{playerName}</span>!
+            </div>
           )}
           <div className="home-btn-wrap">
             <button className="bold-btn" onClick={startGame}>
