@@ -559,6 +559,29 @@ function App() {
             >
               SHOOT DAWGS
             </button>
+            {/* Synthwave PC-only tagline */}
+            <div
+              style={{
+                marginTop: "15px",
+                marginBottom: "2px",
+                fontFamily: "'Orbitron', 'Inter', monospace",
+                fontWeight: 600,
+                color: "var(--sw-neon-yellow)",
+                background: "rgba(24,16,60,0.37)",
+                borderRadius: "10px",
+                padding: "8px 21px 6px 21px",
+                fontSize: "1.18rem",
+                letterSpacing: ".01em",
+                lineHeight: "1.3",
+                boxShadow: "0 0 18px #ffe06244, 0 1px 5px #fff2",
+                textShadow: "0 0 8px #ffe06299, 0 2px 11px #00fff7cc"
+              }}
+            >
+              🎮 Built for Keys &amp; Clicks.<br />
+              <span style={{ opacity: 0.95 }}>
+                Play it the way it’s meant to be – on a PC.
+              </span>
+            </div>
             <button className="tiny-ghost-btn" onClick={showBoard}>
               🏆 Leaderboard
             </button>
